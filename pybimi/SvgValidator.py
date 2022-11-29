@@ -1,12 +1,12 @@
 import os
 import tempfile
 from urllib.parse import urlparse
-import requests
 import subprocess
-import re 
+import re
 
 from .bimi import *
 from .exception import *
+from .utils import *
 
 HERE = os.path.split(__file__)[0]
 JING_JAR = os.path.join(HERE, 'jing.jar')
@@ -34,28 +34,10 @@ class SvgValidator:
         fd, path = tempfile.mkstemp(prefix='pybimi', suffix='.svg')
         try:
             with os.fdopen(fd, 'wb') as f:
-                headers = {'User-Agent': self.opts.httpUserAgent}
-                resp = requests.get(self.uri,
-                                 stream=True,
-                                 timeout=self.opts.httpTimeout,
-                                 headers=headers)
-
-                if self.opts.maxSizeInBytes > 0:
-                    if int(resp.headers.get('Content-Length', 0)) > self.opts.maxSizeInBytes:
-                        raise BimiFail('the downloaded svg indicator is bigger than {} bytes'.format(self.opts.maxSizeInBytes))
-
-                    data = []
-                    length = 0
-                    for chunk in resp.iter_content(1024):
-                        data.append(chunk)
-                        length += len(chunk)
-                        if length > self.opts.maxSizeInBytes:
-                            raise BimiFail('the downloaded svg indicator is bigger than {} bytes'.format(self.opts.maxSizeInBytes))
-                    f.write(b''.join(data))
-
-                else:
-                    f.write(resp.content)
-
+                f.write(download(self.uri,
+                                 self.opts.httpTimeout,
+                                 self.opts.httpUserAgent,
+                                 self.opts.maxSizeInBytes))
         except BimiFail as e:
             raise e
         except Exception as e:

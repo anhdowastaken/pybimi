@@ -9,7 +9,7 @@ class TestLookupValidator(unittest.TestCase):
         ]
         for domain in domainArr:
             lv = pybimi.LookupValidator(domain)
-            print(lv.validate())
+            lv.validate()
 
         domainArr = [
             'change.org',
@@ -18,7 +18,7 @@ class TestLookupValidator(unittest.TestCase):
         for domain in domainArr:
             with self.assertRaises(pybimi.BimiNoPolicy):
                 lv = pybimi.LookupValidator(domain)
-                print(lv.validate())
+                lv.validate()
 
         domainArr = [
             'mac.com',
@@ -27,7 +27,7 @@ class TestLookupValidator(unittest.TestCase):
         for domain in domainArr:
             with self.assertRaises(pybimi.BimiDeclined):
                 lv = pybimi.LookupValidator(domain)
-                print(lv.validate())
+                lv.validate()
 
         domainArr = [
             'news.united.com',
@@ -39,4 +39,4 @@ class TestLookupValidator(unittest.TestCase):
         for domain in domainArr:
             with self.assertRaises(pybimi.BimiFail):
                 lv = pybimi.LookupValidator(domain)
-                print(lv.validate())
+                lv.validate()
