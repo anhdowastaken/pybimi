@@ -19,6 +19,7 @@ setup(
     url='https://github.com/anhdowastaken/pybimi',
     license='LICENSE',
     description='A BIMI validator',
+    python_requires='>=3',
     install_requires=[
         'asn1crypto',
         'cachetools',
