@@ -35,16 +35,36 @@ class VmcValidator:
         self.httpOpts = httpOpts
         self.cache = cache
 
+    def _saveValidationResultToCache(self, key: str, value: Exception):
+        if self.cache is not None:
+            self.cache[key] = value
+
     def validate(self):
         if not self.vmcUri:
             return
 
+        h = hashlib.new('md5')
+        h.update(self.vmcUri.encode())
+        key = 'bimi_vmc_verification_result_{}'.format(h.hexdigest())
+        if self.cache is not None and \
+           key in self.cache:
+            # print('Found {} in cache'.format(key))
+            e = self.cache[key]
+            if e is None:
+                return
+            else:
+                raise e
+
         url = urlparse(self.vmcUri)
         if url is None:
-            raise BimiFail('invalid Location URI')
+            e = BimiFail('invalid Location URI')
+            self._saveValidationResultToCache(key, e)
+            raise e
 
         if url.scheme != 'https':
-            raise BimiFail('the Authority Evidence Location URI is not served by HTTPS')
+            e = BimiFail('the Authority Evidence Location URI is not served by HTTPS')
+            self._saveValidationResultToCache(key, e)
+            raise e
 
         try:
             vmcData = download(self.vmcUri,
@@ -53,9 +73,13 @@ class VmcValidator:
                                self.opts.maxSizeInBytes,
                                self.cache)
         except BimiFail as e:
+            self._saveValidationResultToCache(key, e)
             raise e
+
         except Exception as e:
-            raise BimiTempfail(e)
+            e = BimiTempfail(e)
+            self._saveValidationResultToCache(key, e)
+            raise e
 
         try:
             intermediates = []
@@ -72,14 +96,18 @@ class VmcValidator:
                 # Certificate is not a CA, it must be our leaf certificate.
                 # If we already found one, bail with error.
                 if vmc is not None:
-                    raise BimiFail('more than one VMC found')
+                    e = BimiFail('more than one VMC found')
+                    self._saveValidationResultToCache(key, e)
+                    raise e
 
                 leaf = der_bytes
                 vmc = cert
 
             # We exit the loop with no leaf certificate
             if vmc is None:
-                raise BimiFail('no VMC found')
+                e = BimiFail('no VMC found')
+                self._saveValidationResultToCache(key, e)
+                raise e
 
             roots = []
             with open(CACERT, 'rb') as f:
@@ -105,7 +133,9 @@ class VmcValidator:
 
             if self.opts.verifyDNSName:
                 if not vmc.is_valid_domain_ip(self.domain):
-                    raise BimiFail('the VMC is not valid for {}. Valid hostnames include: {}'.format(self.domain, ', '.join(vmc.valid_domains)))
+                    e = BimiFail('the VMC is not valid for {}. Valid hostnames include: {}'.format(self.domain, ', '.join(vmc.valid_domains)))
+                    self._saveValidationResultToCache(key, e)
+                    raise e
 
             # TODO: 5.1.4. Validate the proof of CT logging
             # https://github.com/google/certificate-transparency/tree/master/python
@@ -133,19 +163,25 @@ class VmcValidator:
                     break
 
             if not sanMatch:
-                raise BimiFail('domain does not match SAN')
+                e = BimiFail('domain does not match SAN')
+                self._saveValidationResultToCache(key, e)
+                raise e
 
             # Validation of VMC Evidence Document
             hashArr = []
             for ext in vmc['tbs_certificate']['extensions']:
                 if ext['extn_id'].native == oidLogotype:
                     if ext['critical'].native:
-                        raise BimiFail('the logotype extension is CRITICAL')
+                        e = BimiFail('the logotype extension is CRITICAL')
+                        self._saveValidationResultToCache(key, e)
+                        raise e
 
                     hashArr += extractHashArray(ext['extn_value'].native)
 
             if len(hashArr) == 0:
-                raise BimiFail('no hash found')
+                e = BimiFail('no hash found')
+                self._saveValidationResultToCache(key, e)
+                raise e
 
             try:
                 indicatorData = download(self.indicatorUri,
@@ -153,9 +189,13 @@ class VmcValidator:
                                          self.httpOpts.httpUserAgent,
                                          self.indicatorOpts.maxSizeInBytes)
             except BimiFail as e:
+                self._saveValidationResultToCache(key, e)
                 raise e
+
             except Exception as e:
-                raise BimiTempfail(e)
+                e = BimiTempfail(e)
+                self._saveValidationResultToCache(key, e)
+                raise e
 
             hashMatch = False
             for hash in hashArr:
@@ -166,7 +206,14 @@ class VmcValidator:
                     break
 
             if not hashMatch:
-                raise BimiFail('data from Location and data from Authority Evidence Location are not identical')
+                e = BimiFail('data from Location and data from Authority Evidence Location are not identical')
+                self._saveValidationResultToCache(key, e)
+                raise e
 
         except Exception as e:
-            raise BimiFail(e)
+            e = BimiFail(e)
+            self._saveValidationResultToCache(key, e)
+            raise e
+
+        if self.cache is not None:
+            self.cache[key] = None

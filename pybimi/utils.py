@@ -12,8 +12,10 @@ def download(uri: str,
     h = hashlib.new('md5')
     h.update(uri.encode())
     key = 'bimi_downloaded_data_{}'.format(h.hexdigest())
-    if cache is not None and key in cache and cache[key]:
-        # print('Found {} in cache'.format(key))
+    if cache is not None and \
+       key in cache and \
+       cache[key]:
+        print('Found {} in cache'.format(key))
         return cache[key]
 
     headers = {'User-Agent': userAgent}
