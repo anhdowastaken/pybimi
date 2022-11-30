@@ -7,21 +7,19 @@ import re
 from .bimi import *
 from .exception import *
 from .utils import *
+from .options import *
 
 HERE = os.path.split(__file__)[0]
 JING_JAR = os.path.join(HERE, 'jing.jar')
 RNC_SCHEMA = os.path.join(HERE, 'SVG_PS-latest.rnc')
 
-class SvgOptions:
-    def __init__(self, httpTimeout=30, httpUserAgent='', maxSizeInBytes=0) -> None:
-        self.httpTimeout = httpTimeout
-        self.httpUserAgent = httpUserAgent
-        self.maxSizeInBytes = maxSizeInBytes
-
-class SvgValidator:
-    def __init__(self, uri: str, opts: SvgOptions=SvgOptions()) -> None:
+class IndicatorValidator:
+    def __init__(self, uri: str,
+                       opts: IndicatorOptions=IndicatorOptions(),
+                       httpOpts: HttpOptions=HttpOptions()) -> None:
         self.uri = uri
         self.opts = opts
+        self.httpOpts = httpOpts
 
     def validate(self):
         url = urlparse(self.uri)
@@ -35,8 +33,8 @@ class SvgValidator:
         try:
             with os.fdopen(fd, 'wb') as f:
                 f.write(download(self.uri,
-                                 self.opts.httpTimeout,
-                                 self.opts.httpUserAgent,
+                                 self.httpOpts.httpTimeout,
+                                 self.httpOpts.httpUserAgent,
                                  self.opts.maxSizeInBytes))
         except BimiFail as e:
             raise e

@@ -1,16 +1,17 @@
 import unittest
 import pybimi
 
-class TestSvgValidator(unittest.TestCase):
-    def test_SvgValidator(self):
+class TestIndicatorValidator(unittest.TestCase):
+    def test_IndicatorValidator(self):
         domainArr = [
             'dmarc25.jp',
             'mango.com',
         ]
         for domain in domainArr:
             lv = pybimi.LookupValidator(domain)
-            sv = pybimi.SvgValidator(lv.validate().location)
-            sv.validate()
+            rec = lv.validate()
+            iv = pybimi.IndicatorValidator(rec.location)
+            iv.validate()
 
         domainArr = [
             'myfritz.net',
@@ -18,8 +19,10 @@ class TestSvgValidator(unittest.TestCase):
         for domain in domainArr:
             with self.assertRaises(pybimi.BimiFail):
                 lv = pybimi.LookupValidator(domain)
-                sv = pybimi.SvgValidator(lv.validate().location, pybimi.SvgOptions(maxSizeInBytes=50000))
-                sv.validate()
+                rec = lv.validate()
+                iv = pybimi.IndicatorValidator(rec.location,
+                                               pybimi.IndicatorOptions(maxSizeInBytes=50000))
+                iv.validate()
 
         domainArr = [
             'quizlet.com',
@@ -28,5 +31,6 @@ class TestSvgValidator(unittest.TestCase):
         for domain in domainArr:
             with self.assertRaises(pybimi.BimiFail):
                 lv = pybimi.LookupValidator(domain)
-                sv = pybimi.SvgValidator(lv.validate().location)
-                sv.validate()
+                rec = lv.validate()
+                iv = pybimi.IndicatorValidator(rec.location)
+                iv.validate()

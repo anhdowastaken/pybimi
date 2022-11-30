@@ -3,10 +3,7 @@ from tld import get_tld
 
 from .bimi import *
 from .exception import *
-
-class LookupOptions:
-    def __init__(self, selector: str=DEFAULT_SELECTOR) -> None:
-        self.selector = selector
+from .options import *
 
 class LookupValidator:
     def __init__(self, domain: str, opts=LookupOptions()) -> None:

@@ -184,7 +184,7 @@ class LogotypeHash():
 
         self.value = value
 
-def extractHashArray(data):
+def extractHashArray(data) -> list:
     parsed = ASN1LogotypeExtn.load(data)
 
     if 'subjectLogo' not in parsed:

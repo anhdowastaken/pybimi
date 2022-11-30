@@ -12,8 +12,8 @@ class TestLookupValidator(unittest.TestCase):
             lv.validate()
 
         domainArr = [
-            'change.org',
-            'e.change.org',
+            'example.com',
+            'a.example.com',
         ]
         for domain in domainArr:
             with self.assertRaises(pybimi.BimiNoPolicy):

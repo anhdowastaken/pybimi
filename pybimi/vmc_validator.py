@@ -8,33 +8,26 @@ from .bimi import *
 from .exception import *
 from .utils import *
 from .asn1_logotype import *
+from .options import *
 
 HERE = os.path.split(__file__)[0]
 CACERT = os.path.join(HERE, 'cacert.pem')
 
-class VmcOptions:
-    def __init__(self, httpTimeout=30,
-                       httpUserAgent='',
-                       vmcMaxSizeInBytes=0,
-                       indicatorMaxSizeInBytes=0,
-                       verifyDNSName=True,
-                       revocationCheckAndOscpCheck=False) -> None:
-        self.httpTimeout = httpTimeout
-        self.httpUserAgent = httpUserAgent
-        self.vmcMaxSizeInBytes = vmcMaxSizeInBytes
-        self.indicatorMaxSizeInBytes = indicatorMaxSizeInBytes
-        self.verifyDNSName = verifyDNSName
-        self.revocationCheckAndOscpCheck = revocationCheckAndOscpCheck
+oidExtKeyUsageBrandIndicatorForMessageIdentification = '1.3.6.1.5.5.7.3.31'
 
 class VmcValidator:
     def __init__(self, vmcUri: str,
                        indicatorUri: str,
                        domain: str=None,
-                       opts: VmcOptions=VmcOptions()) -> None:
+                       opts: VmcOptions=VmcOptions(),
+                       httpOpts: HttpOptions=HttpOptions(),
+                       indicatorOpts: IndicatorOptions=IndicatorOptions()) -> None:
         self.vmcUri = vmcUri
         self.indicatorUri = indicatorUri
         self.domain = domain
         self.opts = opts
+        self.httpOpts = httpOpts
+        self.indicatorOpts = indicatorOpts
 
     def validate(self):
         if not self.vmcUri:
@@ -49,9 +42,9 @@ class VmcValidator:
 
         try:
             vmcData = download(self.vmcUri,
-                               self.opts.httpTimeout,
-                               self.opts.httpUserAgent,
-                               self.opts.vmcMaxSizeInBytes)
+                               self.httpOpts.httpTimeout,
+                               self.httpOpts.httpUserAgent,
+                               self.opts.maxSizeInBytes)
         except BimiFail as e:
             raise e
         except Exception as e:
@@ -126,9 +119,9 @@ class VmcValidator:
 
             try:
                 indicatorData = download(self.indicatorUri,
-                                         self.opts.httpTimeout,
-                                         self.opts.httpUserAgent,
-                                         self.opts.indicatorMaxSizeInBytes)
+                                         self.httpOpts.httpTimeout,
+                                         self.httpOpts.httpUserAgent,
+                                         self.indicatorOpts.maxSizeInBytes)
             except BimiFail as e:
                 raise e
             except Exception as e:
