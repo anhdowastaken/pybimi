@@ -58,7 +58,7 @@ class VmcValidator:
 
         url = urlparse(self.vmcUri)
         if url is None:
-            e = BimiFail('invalid Location URI')
+            e = BimiFail('invalid Authority Evidence Location URI')
             self._saveValidationResultToCache(key, e)
             raise e
 
@@ -164,7 +164,7 @@ class VmcValidator:
                     break
 
             if not sanMatch:
-                e = BimiFail('domain does not match SAN')
+                e = BimiFail('domain does not match SAN in VMC')
                 self._saveValidationResultToCache(key, e)
                 raise e
 
@@ -173,14 +173,14 @@ class VmcValidator:
             for ext in vmc['tbs_certificate']['extensions']:
                 if ext['extn_id'].native == oidLogotype:
                     if ext['critical'].native:
-                        e = BimiFail('the logotype extension is CRITICAL')
+                        e = BimiFail('the logotype extension in VMC is CRITICAL')
                         self._saveValidationResultToCache(key, e)
                         raise e
 
                     hashArr += extractHashArray(ext['extn_value'].native)
 
             if len(hashArr) == 0:
-                e = BimiFail('no hash found')
+                e = BimiFail('no hash found in VMC')
                 self._saveValidationResultToCache(key, e)
                 raise e
 
