@@ -3,6 +3,7 @@ import tempfile
 from urllib.parse import urlparse
 import subprocess
 import re
+from cachetools import TTLCache
 
 from .bimi import *
 from .exception import *
@@ -16,10 +17,12 @@ RNC_SCHEMA = os.path.join(HERE, 'SVG_PS-latest.rnc')
 class IndicatorValidator:
     def __init__(self, uri: str,
                        opts: IndicatorOptions=IndicatorOptions(),
-                       httpOpts: HttpOptions=HttpOptions()) -> None:
+                       httpOpts: HttpOptions=HttpOptions(),
+                       cache: TTLCache=None) -> None:
         self.uri = uri
         self.opts = opts
         self.httpOpts = httpOpts
+        self.cache = cache
 
     def validate(self):
         url = urlparse(self.uri)
@@ -32,10 +35,13 @@ class IndicatorValidator:
         fd, path = tempfile.mkstemp(prefix='pybimi', suffix='.svg')
         try:
             with os.fdopen(fd, 'wb') as f:
-                f.write(download(self.uri,
-                                 self.httpOpts.httpTimeout,
-                                 self.httpOpts.httpUserAgent,
-                                 self.opts.maxSizeInBytes))
+                indicatorData = download(self.uri,
+                                         self.httpOpts.httpTimeout,
+                                         self.httpOpts.httpUserAgent,
+                                         self.opts.maxSizeInBytes,
+                                         self.cache)
+                f.write(indicatorData)
+
         except BimiFail as e:
             raise e
         except Exception as e:

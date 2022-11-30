@@ -4,6 +4,7 @@ from asn1crypto import pem, x509
 from certvalidator import ValidationContext, CertificateValidator
 import hashlib
 from tld import get_tld
+from cachetools import TTLCache
 
 from .bimi import *
 from .exception import *
@@ -23,7 +24,8 @@ class VmcValidator:
                        opts: VmcOptions=VmcOptions(),
                        lookupOpts: LookupOptions=LookupOptions,
                        indicatorOpts: IndicatorOptions=IndicatorOptions(),
-                       httpOpts: HttpOptions=HttpOptions()) -> None:
+                       httpOpts: HttpOptions=HttpOptions(),
+                       cache: TTLCache=None) -> None:
         self.vmcUri = vmcUri
         self.indicatorUri = indicatorUri
         self.domain = domain
@@ -31,6 +33,7 @@ class VmcValidator:
         self.lookupOpts = lookupOpts
         self.indicatorOpts = indicatorOpts
         self.httpOpts = httpOpts
+        self.cache = cache
 
     def validate(self):
         if not self.vmcUri:
@@ -47,7 +50,8 @@ class VmcValidator:
             vmcData = download(self.vmcUri,
                                self.httpOpts.httpTimeout,
                                self.httpOpts.httpUserAgent,
-                               self.opts.maxSizeInBytes)
+                               self.opts.maxSizeInBytes,
+                               self.cache)
         except BimiFail as e:
             raise e
         except Exception as e:
