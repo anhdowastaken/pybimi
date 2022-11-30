@@ -1,4 +1,4 @@
-from .exception import BimiNoPolicy, BimiDeclined, BimiTempfail, BimiFail
+from .exception import BimiError, BimiNoPolicy, BimiDeclined, BimiTempfail, BimiFail
 from .options import LookupOptions, IndicatorOptions, VmcOptions, HttpOptions
 from .lookup_validator import LookupValidator
 from .indicator_validator import IndicatorValidator
