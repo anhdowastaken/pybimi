@@ -134,7 +134,7 @@ class VmcValidator:
 
             if self.opts.verifyDNSName:
                 if not vmc.is_valid_domain_ip(self.domain):
-                    e = BimiFail('the VMC is not valid for {}. Valid hostnames include: {}'.format(self.domain, ', '.join(vmc.valid_domains)))
+                    e = BimiFail('the VMC is not valid for {} (valid hostnames include: {})'.format(self.domain, ', '.join(vmc.valid_domains)))
                     self._saveValidationResultToCache(key, e)
                     raise e
 
