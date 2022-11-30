@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 from asn1crypto import pem, x509
 from certvalidator import ValidationContext, CertificateValidator
 import hashlib
+from tld import get_tld
 
 from .bimi import *
 from .exception import *
@@ -20,14 +21,16 @@ class VmcValidator:
                        indicatorUri: str,
                        domain: str=None,
                        opts: VmcOptions=VmcOptions(),
-                       httpOpts: HttpOptions=HttpOptions(),
-                       indicatorOpts: IndicatorOptions=IndicatorOptions()) -> None:
+                       lookupOpts: LookupOptions=LookupOptions,
+                       indicatorOpts: IndicatorOptions=IndicatorOptions(),
+                       httpOpts: HttpOptions=HttpOptions()) -> None:
         self.vmcUri = vmcUri
         self.indicatorUri = indicatorUri
         self.domain = domain
         self.opts = opts
-        self.httpOpts = httpOpts
+        self.lookupOpts = lookupOpts
         self.indicatorOpts = indicatorOpts
+        self.httpOpts = httpOpts
 
     def validate(self):
         if not self.vmcUri:
@@ -103,7 +106,30 @@ class VmcValidator:
             # TODO: 5.1.4. Validate the proof of CT logging
             # https://github.com/google/certificate-transparency/tree/master/python
 
-            # TODO: VMC Domain Verification
+            # VMC Domain Verification
+            selectorSet = []
+            domainSet = []
+            for n in vmc.subject_alt_name_value:
+                san = n.native
+                if '_bimi' in san:
+                    selectorSet.append(san)
+                else:
+                    domainSet.append(san)
+
+            sanMatch = False
+            tld = get_tld(self.domain, fix_protocol=True, fail_silently=True)
+            for r in selectorSet:
+                if '{}._bimi.{}'.format(self.lookupOpts.selector, self.domain) == r or \
+                   '{}._bimi.{}'.format(self.lookupOpts.selector, tld) == r:
+                    sanMatch = True
+                    break
+            for r in domainSet:
+                if self.domain == r or tld == r:
+                    sanMatch = True
+                    break
+
+            if not sanMatch:
+                raise BimiFail('domain does not match SAN')
 
             # Validation of VMC Evidence Document
             hashArr = []
