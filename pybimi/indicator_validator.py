@@ -24,13 +24,33 @@ class IndicatorValidator:
         self.httpOpts = httpOpts
         self.cache = cache
 
+    def _saveValidationResultToCache(self, key: str, value: Exception):
+        if self.cache is not None:
+            self.cache[key] = value
+
     def validate(self):
+        h = hashlib.new('md5')
+        h.update(self.uri.encode())
+        key = 'bimi_indicator_verification_result_{}'.format(h.hexdigest())
+        if self.cache is not None and \
+           key in self.cache:
+            # print('Found {} in cache'.format(key))
+            e = self.cache[key]
+            if e is None:
+                return
+            else:
+                raise e
+
         url = urlparse(self.uri)
         if url is None:
-            raise BimiFail('invalid Location URI')
+            e = BimiFail('invalid Location URI')
+            self._saveValidationResultToCache(key, e)
+            raise e
 
         if url.scheme != 'https':
-            raise BimiFail('the Location URI is not served by HTTPS')
+            e = BimiFail('the Location URI is not served by HTTPS')
+            self._saveValidationResultToCache(key, e)
+            raise e
 
         fd, path = tempfile.mkstemp(prefix='pybimi', suffix='.svg')
         try:
@@ -43,17 +63,23 @@ class IndicatorValidator:
                 f.write(indicatorData)
 
         except BimiFail as e:
+            self._saveValidationResultToCache(key, e)
             raise e
+
         except Exception as e:
             os.remove(path)
-            raise BimiTempfail(e)
+            e = BimiTempfail(e)
+            self._saveValidationResultToCache(key, e)
+            raise e
 
         try:
             cmd = ['java', '-jar', JING_JAR, '-c', RNC_SCHEMA, path]
             proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
             os.remove(path)
-            raise BimiTempfail(e)
+            e = BimiTempfail(e)
+            self._saveValidationResultToCache(key, e)
+            raise e
 
         if proc.returncode != 0:
             out = proc.stdout.decode() + proc.stderr.decode()
@@ -63,10 +89,21 @@ class IndicatorValidator:
                 pattern = '.+:\d+:\d+:\s+(error|fatal):\s+(.+)'
                 matches = re.findall(pattern, line)
                 if len(matches) > 0:
-                    raise BimiFail(matches[0][1])
+                    e = BimiFail(matches[0][1])
+                    self._saveValidationResultToCache(key, e)
+                    raise e
+
                 else:
-                    raise BimiFail(line)
+                    e = BimiFail(line)
+                    self._saveValidationResultToCache(key, e)
+                    raise e
+
             else:
-                raise BimiFail(out)
+                e = BimiFail(out)
+                self._saveValidationResultToCache(key, e)
+                raise e
 
         os.remove(path)
+
+        if self.cache is not None:
+            self.cache[key] = None
