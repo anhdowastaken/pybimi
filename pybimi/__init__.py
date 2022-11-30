@@ -1,4 +1,4 @@
 from .exception import BimiNoPolicy, BimiDeclined, BimiTempfail, BimiFail
-from .LookupValidator import LookupOptions, LookupValidator
-from .SvgValidator import SvgOptions, SvgValidator
-from .VmcValidator import VmcOptions, VmcValidator
+from .lookup_validator import LookupOptions, LookupValidator
+from .svg_validator import SvgOptions, SvgValidator
+from .vmc_validator import VmcOptions, VmcValidator

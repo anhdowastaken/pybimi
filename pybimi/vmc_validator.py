@@ -7,7 +7,7 @@ import hashlib
 from .bimi import *
 from .exception import *
 from .utils import *
-from .ASN1Logotype import oidLogotype, extractHashArray
+from .asn1_logotype import *
 
 HERE = os.path.split(__file__)[0]
 CACERT = os.path.join(HERE, 'cacert.pem')
