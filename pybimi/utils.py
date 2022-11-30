@@ -1,22 +1,23 @@
 import requests
 import hashlib
-from cachetools import TTLCache
 
 from .exception import BimiFail
+from .cache import Cache
 
 def download(uri: str,
              timeout: int=30,
              userAgent: str='',
              maxSizeInBytes: int=0,
-             cache: TTLCache=None) -> bytes:
+             cache: Cache=None) -> bytes:
     h = hashlib.new('md5')
     h.update(uri.encode())
     key = 'bimi_downloaded_data_{}'.format(h.hexdigest())
-    if cache is not None and \
-       key in cache and \
-       cache[key]:
-        print('Found {} in cache'.format(key))
-        return cache[key]
+    # Find downloaded data in cache
+    if cache is not None:
+        # print('Found {} in cache'.format(key))
+        found, data = cache.get(key)
+        if found:
+            return data
 
     headers = {'User-Agent': userAgent}
     resp = requests.get(uri,
@@ -44,6 +45,6 @@ def download(uri: str,
 
     # Cache
     if cache is not None:
-        cache[key] = data
+        cache.set(key, data)
 
     return data

@@ -4,13 +4,13 @@ from asn1crypto import pem, x509
 from certvalidator import ValidationContext, CertificateValidator
 import hashlib
 from tld import get_tld
-from cachetools import TTLCache
 
 from .bimi import *
 from .exception import *
 from .utils import *
 from .asn1_logotype import *
 from .options import *
+from .cache import *
 
 HERE = os.path.split(__file__)[0]
 CACERT = os.path.join(HERE, 'cacert.pem')
@@ -25,7 +25,7 @@ class VmcValidator:
                        lookupOpts: LookupOptions=LookupOptions,
                        indicatorOpts: IndicatorOptions=IndicatorOptions(),
                        httpOpts: HttpOptions=HttpOptions(),
-                       cache: TTLCache=None) -> None:
+                       cache: Cache=None) -> None:
         self.vmcUri = vmcUri
         self.indicatorUri = indicatorUri
         self.domain = domain
@@ -37,7 +37,7 @@ class VmcValidator:
 
     def _saveValidationResultToCache(self, key: str, value: Exception):
         if self.cache is not None:
-            self.cache[key] = value
+            self.cache.set(key, value)
 
     def validate(self):
         if not self.vmcUri:
@@ -45,15 +45,16 @@ class VmcValidator:
 
         h = hashlib.new('md5')
         h.update(self.vmcUri.encode())
-        key = 'bimi_vmc_verification_result_{}'.format(h.hexdigest())
-        if self.cache is not None and \
-           key in self.cache:
-            # print('Found {} in cache'.format(key))
-            e = self.cache[key]
-            if e is None:
-                return
-            else:
-                raise e
+        key = 'bimi_vmc_validation_result_{}'.format(h.hexdigest())
+        # Find validation result in cache
+        if self.cache is not None:
+            found, e = self.cache.get(key)
+            if found:
+                # print('Found {} in cache'.format(key))
+                if e is None:
+                    return
+                else:
+                    raise e
 
         url = urlparse(self.vmcUri)
         if url is None:
@@ -215,5 +216,4 @@ class VmcValidator:
             self._saveValidationResultToCache(key, e)
             raise e
 
-        if self.cache is not None:
-            self.cache[key] = None
+        self._saveValidationResultToCache(key, None)

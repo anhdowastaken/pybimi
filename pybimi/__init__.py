@@ -4,3 +4,4 @@ from .lookup_validator import LookupValidator
 from .indicator_validator import IndicatorValidator
 from .vmc_validator import VmcValidator
 from .validator import Validator
+from .cache import Cache

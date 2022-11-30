@@ -3,12 +3,12 @@ import tempfile
 from urllib.parse import urlparse
 import subprocess
 import re
-from cachetools import TTLCache
 
 from .bimi import *
 from .exception import *
 from .utils import *
 from .options import *
+from .cache import *
 
 HERE = os.path.split(__file__)[0]
 JING_JAR = os.path.join(HERE, 'jing.jar')
@@ -18,7 +18,7 @@ class IndicatorValidator:
     def __init__(self, uri: str,
                        opts: IndicatorOptions=IndicatorOptions(),
                        httpOpts: HttpOptions=HttpOptions(),
-                       cache: TTLCache=None) -> None:
+                       cache: Cache=None) -> None:
         self.uri = uri
         self.opts = opts
         self.httpOpts = httpOpts
@@ -26,20 +26,21 @@ class IndicatorValidator:
 
     def _saveValidationResultToCache(self, key: str, value: Exception):
         if self.cache is not None:
-            self.cache[key] = value
+            self.cache.set(key, value)
 
     def validate(self):
         h = hashlib.new('md5')
         h.update(self.uri.encode())
-        key = 'bimi_indicator_verification_result_{}'.format(h.hexdigest())
-        if self.cache is not None and \
-           key in self.cache:
-            # print('Found {} in cache'.format(key))
-            e = self.cache[key]
-            if e is None:
-                return
-            else:
-                raise e
+        key = 'bimi_indicator_validation_result_{}'.format(h.hexdigest())
+        # Find validation result in cache
+        if self.cache is not None:
+            found, e = self.cache.get(key)
+            if found:
+                # print('Found {} in cache'.format(key))
+                if e is None:
+                    return
+                else:
+                    raise e
 
         url = urlparse(self.uri)
         if url is None:
@@ -105,5 +106,4 @@ class IndicatorValidator:
 
         os.remove(path)
 
-        if self.cache is not None:
-            self.cache[key] = None
+        self._saveValidationResultToCache(key, None)
