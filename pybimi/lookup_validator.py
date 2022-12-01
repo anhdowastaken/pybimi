@@ -1,5 +1,5 @@
 import dns.resolver
-from tld import get_tld
+from tld import get_fld
 
 from .bimi import *
 from .exception import *
@@ -31,9 +31,9 @@ class LookupValidator:
         try:
             txt = self._lookup()
         except (BimiNoPolicy, BimiFail):
-            tld = get_tld(self.domain, fix_protocol=True, fail_silently=True)
-            if tld and tld.strip() and tld != self.domain:
-                self.actualDomain = tld
+            fld = get_fld(self.domain, fix_protocol=True, fail_silently=True)
+            if fld and fld.strip() and fld != self.domain:
+                self.actualDomain = fld
                 # The second try with the effective top level domain
                 # Keep using input selector if it exists
                 txt = self._lookup()

@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from asn1crypto import pem, x509
 from certvalidator import ValidationContext, CertificateValidator
 import hashlib
-from tld import get_tld
+from tld import get_fld
 
 from .bimi import *
 from .exception import *
@@ -152,14 +152,14 @@ class VmcValidator:
                     domainSet.append(san)
 
             sanMatch = False
-            tld = get_tld(self.domain, fix_protocol=True, fail_silently=True)
+            fld = get_fld(self.domain, fix_protocol=True, fail_silently=True)
             for r in selectorSet:
                 if '{}._bimi.{}'.format(self.lookupOpts.selector, self.domain) == r or \
-                   '{}._bimi.{}'.format(self.lookupOpts.selector, tld) == r:
+                   '{}._bimi.{}'.format(self.lookupOpts.selector, fld) == r:
                     sanMatch = True
                     break
             for r in domainSet:
-                if self.domain == r or tld == r:
+                if self.domain == r or fld == r:
                     sanMatch = True
                     break
 
