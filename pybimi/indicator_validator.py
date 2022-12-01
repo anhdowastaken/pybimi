@@ -10,10 +10,6 @@ from .utils import *
 from .options import *
 from .cache import *
 
-HERE = os.path.split(__file__)[0]
-JING_JAR = os.path.join(HERE, 'jing.jar')
-RNC_SCHEMA = os.path.join(HERE, 'SVG_PS-latest.rnc')
-
 class IndicatorValidator:
     def __init__(self, uri: str,
                        opts: IndicatorOptions=IndicatorOptions(),
@@ -74,7 +70,7 @@ class IndicatorValidator:
             raise e
 
         try:
-            cmd = ['java', '-jar', JING_JAR, '-c', RNC_SCHEMA, path]
+            cmd = [self.opts.javaPath, '-jar', self.opts.jingJarPath, '-c', self.opts.rncSchemaPath, path]
             proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
             os.remove(path)
