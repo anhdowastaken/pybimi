@@ -110,7 +110,7 @@ class LookupValidator:
             if not s.strip():
                 continue
 
-            kv = s.split('=', 2)
+            kv = s.split('=', 1)
             if len(kv) != 2:
                 raise BimiFail('malformed params')
             params[kv[0].strip()] = kv[1].strip()
