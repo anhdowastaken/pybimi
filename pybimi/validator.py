@@ -40,3 +40,5 @@ class Validator():
                               httpOpts=self.httpOpts,
                               cache=self.cache)
             vv.validate()
+
+        return rec
