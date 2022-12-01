@@ -102,7 +102,7 @@ class LookupValidator:
 
     def _parse(self, txt: str) -> dict:
         if not txt:
-            raise BimiFail('malformed params')
+            raise BimiNoPolicy
 
         pairs = txt.split(';')
         params = dict()
