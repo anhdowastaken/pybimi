@@ -33,7 +33,7 @@ class Validator():
         if validateVmc:
             vv = VmcValidator(vmcUri=rec.authorityEvidenceLocation,
                               indicatorUri=rec.location,
-                              domain=self.domain,
+                              domain=rec.domain,
                               opts=self.vmcOpts,
                               lookupOpts=self.lookupOpts,
                               indicatorOpts=self.indicatorOpts,
