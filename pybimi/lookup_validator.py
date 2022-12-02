@@ -58,7 +58,8 @@ class LookupValidator:
         # Long keys are split in multiple parts
         txt = ''
         for rdata in answers:
-            txt += rdata.to_text().strip('"')
+            # FIXME: https://github.com/rthalley/dnspython/blob/32ce73ab3fca0cfd7e5bf0af3b6443a6124b166a/dns/rdtypes/txtbase.py#L66
+            txt += rdata.to_text().strip('"').replace('" "', '')
 
         return txt
 

@@ -82,6 +82,11 @@ class VmcValidator:
             self._saveValidationResultToCache(key, e)
             raise e
 
+        if not pem.detect(vmcData):
+            e = BimiFail('PEM-encoded data not found')
+            self._saveValidationResultToCache(key, e)
+            raise e
+
         try:
             intermediates = []
             leaf = None
