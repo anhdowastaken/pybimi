@@ -1,7 +1,7 @@
 import requests
 import hashlib
 
-from .exception import BimiFail
+from .exception import BimiFail, BimiTempfail
 from .cache import Cache
 
 def download(uri: str,
@@ -24,6 +24,9 @@ def download(uri: str,
                         stream=True,
                         timeout=timeout,
                         headers=headers)
+
+    if resp.status_code != 200:
+        raise BimiTempfail('{} {}'.format(resp.status_code, resp.reason))
 
     data = None
     if maxSizeInBytes > 0:
