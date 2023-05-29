@@ -1,15 +1,13 @@
 import unittest
 import pybimi
-from cachetools import TTLCache
 
 class TestValidator(unittest.TestCase):
     def test_Validator(self):
         domainArr = [
             'dmarc25.jp',
-            'dmarc25.jp',
             # 'mango.com',
         ]
-        cache = TTLCache(maxsize=100, ttl=1800)
+        cache = pybimi.Cache(maxsize=100, ttl=1800)
         for domain in domainArr:
             v = pybimi.Validator(domain, cache=cache)
             v.validate()

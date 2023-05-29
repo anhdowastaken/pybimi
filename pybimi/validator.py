@@ -1,9 +1,8 @@
-from cachetools import TTLCache
-
 from .options import *
 from .lookup_validator import LookupValidator
 from .indicator_validator import IndicatorValidator
 from .vmc_validator import VmcValidator
+from .cache import Cache
 
 class Validator():
     def __init__(self, domain: str,
@@ -11,7 +10,7 @@ class Validator():
                        indicatorOpts: IndicatorOptions=IndicatorOptions(),
                        vmcOpts: VmcOptions=VmcOptions(),
                        httpOpts: HttpOptions=HttpOptions(),
-                       cache: TTLCache=None) -> None:
+                       cache: Cache=None) -> None:
         self.domain = domain
         self.lookupOpts = lookupOpts
         self.indicatorOpts = indicatorOpts
