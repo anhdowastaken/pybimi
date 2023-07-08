@@ -138,10 +138,21 @@ class VmcValidator:
             )
 
             if self.opts.verifyDNSName:
-                if not vmc.is_valid_domain_ip(self.domain):
-                    e = BimiFail('the VMC is not valid for {} (valid hostnames include: {})'.format(self.domain, ', '.join(vmc.valid_domains)))
-                    self._saveValidationResultToCache(key, e)
-                    raise e
+                hostname = self.domain
+                if not vmc.is_valid_domain_ip(hostname):
+                    invalidHostname = True
+
+                    if self.opts.verifyDNSNameIgnoreSubdomain:
+                        # Try TLD
+                        fld = get_fld(self.domain, fix_protocol=True, fail_silently=True)
+                        hostname = fld
+                        if vmc.is_valid_domain_ip(hostname):
+                            invalidHostname = False
+
+                    if invalidHostname:
+                        e = BimiFail('the VMC is not valid for {} (valid hostnames include: {})'.format(hostname, ', '.join(vmc.valid_domains)))
+                        self._saveValidationResultToCache(key, e)
+                        raise e
 
             # TODO: 5.1.4. Validate the proof of CT logging
             # https://github.com/google/certificate-transparency/tree/master/python
