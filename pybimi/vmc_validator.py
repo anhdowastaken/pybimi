@@ -142,7 +142,7 @@ class VmcValidator:
                 if not vmc.is_valid_domain_ip(hostname):
                     invalidHostname = True
 
-                    if self.opts.verifyDNSNameIgnoreSubdomain:
+                    if self.opts.verifyDNSNameAcceptSubdomain:
                         # Try TLD
                         fld = get_fld(self.domain, fix_protocol=True, fail_silently=True)
                         hostname = fld

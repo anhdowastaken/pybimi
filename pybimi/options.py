@@ -30,13 +30,13 @@ class IndicatorOptions:
 class VmcOptions:
     def __init__(self, maxSizeInBytes: int=0,
                        verifyDNSName: bool=True,
-                       verifyDNSNameIgnoreSubdomain: bool=False,
+                       verifyDNSNameAcceptSubdomain: bool=False,
                        revocationCheckAndOscpCheck: bool=False,
                        httpOpts=HttpOptions(),
                        indicatorOpts=IndicatorOptions()) -> None:
         self.maxSizeInBytes = maxSizeInBytes
         self.verifyDNSName = verifyDNSName
-        self.verifyDNSNameIgnoreSubdomain = verifyDNSNameIgnoreSubdomain
+        self.verifyDNSNameAcceptSubdomain = verifyDNSNameAcceptSubdomain
         self.revocationCheckAndOscpCheck = revocationCheckAndOscpCheck
         self.httpOpts = httpOpts
         self.indicatorOpts = indicatorOpts
