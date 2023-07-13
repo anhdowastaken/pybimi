@@ -6,6 +6,28 @@ from .exception import *
 from .options import *
 
 class LookupValidator:
+    """
+    A class used to validate a BIMI DNS record
+
+    Attributes
+    ----------
+    domain: str
+        A domain
+    opts: LookupOptions
+        DNS lookup options
+    actualDomain: str
+        Actual domain
+    actualSelector: str
+        Actual selector
+
+    Methods
+    -------
+    validate()
+        Validate the BIMI DNS record
+    parse(txt)
+        Parse a BIMI DNS TXT record to a BimiRecord object
+    """
+
     def __init__(self, domain: str, opts=LookupOptions()) -> None:
         self.domain = domain
         self.opts = opts
@@ -17,6 +39,26 @@ class LookupValidator:
             self.actualSelector = DEFAULT_SELECTOR
 
     def validate(self) -> BimiRecord:
+        """
+        Validate the BIMI DNS record. The record is fetched from the DNS server
+        with some lookup options. If the record is fetched successfully, its
+        syntax will be checked. Adn it will be parsed to a BimiRecord object.
+
+        Returns
+        -------
+        BimiRecord
+
+        Raises
+        ------
+        BimiNoPolicy
+
+        BimiDeclined
+
+        BimiFail
+
+        BimiTempfail
+        """
+
         # https://datatracker.ietf.org/doc/html/draft-blank-ietf-bimi-02#appendix-B
         # Lookup selector._bimi.foo.example.com for the BIMI DNS record.
         # If it did not exist, it would fall back to the lookup selector._bimi.example.com.
@@ -64,6 +106,28 @@ class LookupValidator:
         return txt
 
     def parse(self, txt: str) -> BimiRecord:
+        """
+        Parse a DNS TXT record to a BimiRecord object
+
+        Parameters
+        ----------
+        txt: str
+            A DNS TXT record
+
+        Returns
+        -------
+        BimiRecord
+            A BimiRecord object
+
+        Raises
+        ------
+        BimiNoPolicy
+
+        BimiDeclined
+
+        BimiFail
+        """
+
         params = self._parse(txt)
 
         # Find unknown tags

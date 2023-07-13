@@ -5,6 +5,29 @@ from .vmc_validator import VmcValidator
 from .cache import Cache
 
 class Validator():
+    """
+    A class used to validate BIMI of a domain
+
+    Attributes
+    ----------
+    domain: str
+        A domain
+    lookupOpts: LookupOptions
+        DNS lookup options
+    indicatorOpts: IndicatorOptions
+        BIMI indicator validation options
+    vmcOpts: VmcOptions
+        VMC validation options
+    httpOpts: HttpOptions
+        HTTP options
+    cache: Cache=None
+        Cache
+
+    Methods
+    -------
+    validate()
+        Validate BIMI
+    """
     def __init__(self, domain: str,
                        lookupOpts: LookupOptions=LookupOptions(),
                        indicatorOpts: IndicatorOptions=IndicatorOptions(),
@@ -19,6 +42,27 @@ class Validator():
         self.cache = cache
 
     def validate(self, validateIndicator: bool=True, validateVmc: bool=True):
+        """
+        Validate BIMI
+
+        Parameter
+        ---------
+        validateIndicator: bool=True
+            Ensure the BIMI indicator is validated
+        validateVmc: bool=True
+            Ensure the VMC is validated
+
+        Raises
+        ------
+        BimiNoPolicy
+
+        BimiDeclined
+
+        BimiFail
+
+        BimiTempfail
+        """
+
         lv = LookupValidator(domain=self.domain, opts=self.lookupOpts)
         rec = lv.validate()
 
