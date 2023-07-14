@@ -49,6 +49,7 @@ class Cache():
         value: any
             Corresponding value in cache of the key
         """
+
         if self.cache is not None and \
            key in self.cache:
             with self.lock:

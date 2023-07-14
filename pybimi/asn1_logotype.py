@@ -263,6 +263,7 @@ def extractHashArray(data) -> list:
     list
         A list of LogotypeHash
     """
+
     parsed = ASN1LogotypeExtn.load(data)
 
     if 'subjectLogo' not in parsed:
