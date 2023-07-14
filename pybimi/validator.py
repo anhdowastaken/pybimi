@@ -28,6 +28,7 @@ class Validator():
     validate()
         Validate BIMI
     """
+
     def __init__(self, domain: str,
                        lookupOpts: LookupOptions=LookupOptions(),
                        indicatorOpts: IndicatorOptions=IndicatorOptions(),

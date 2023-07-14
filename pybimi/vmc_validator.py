@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from urllib.parse import urlparse
 from asn1crypto import pem, x509
 from certvalidator import ValidationContext, CertificateValidator
@@ -16,6 +17,51 @@ HERE = os.path.split(__file__)[0]
 CACERT = os.path.join(HERE, 'cacert.pem')
 
 oidExtKeyUsageBrandIndicatorForMessageIdentification = '1.3.6.1.5.5.7.3.31'
+oidTrademarkRegistration = '1.3.6.1.4.1.53087.1.4'
+
+class Vmc:
+    """
+    A class used to represent a VMC
+
+    Attributes
+    ----------
+    version: str
+        Version of the certificate
+    serialNumber: str
+        Serial number of the certificate
+    trademarkRegistration: str
+        Trademark registration
+    issuer: str
+        Name of the issuer
+    organizationName: str
+        Name of the organization
+    validFrom: datetime
+        Not before
+    expireOn: datetime
+        Not after
+    certifiedDomains: list
+        Certified domains
+    """
+
+    def __init__(self, version: str,
+                       serialNumber: str,
+                       trademarkRegistration: str,
+                       issuer: str,
+                       organizationName: str,
+                       validFrom: datetime,
+                       expireOn: datetime,
+                       certifiedDomains: list) -> None:
+        self.version = version
+        self.serialNumber = serialNumber
+        self.trademarkRegistration = trademarkRegistration
+        self.issuer = issuer
+        self.organizationName = organizationName
+        self.validFrom = validFrom
+        self.expireOn = expireOn
+        self.certifiedDomains = certifiedDomains
+
+    def __repr__(self) -> str:
+        return str(self.__dict__)
 
 class VmcValidator:
     """
@@ -45,6 +91,7 @@ class VmcValidator:
     validate()
         Validate the VMC
     """
+
     def __init__(self, vmcUri: str,
                        indicatorUri: str,
                        domain: str=None,
@@ -66,11 +113,15 @@ class VmcValidator:
         if self.cache is not None:
             self.cache.set(key, value)
 
-    def validate(self):
+    def validate(self) -> Vmc:
         """
         Validate the VMC. The VMC is downloaded from the URI with some HTTP
         options. If the indicator is downloaded successfully, it will be
         validated by some validation options.
+
+        Returns
+        -------
+        Vmc
 
         Raises
         ------
@@ -78,8 +129,12 @@ class VmcValidator:
 
         BimiTempfail
         """
+
+        # Certificate information holder
+        c = None
+
         if not self.vmcUri:
-            return
+            return c
 
         h = hashlib.new('md5')
         h.update(self.vmcUri.encode())
@@ -90,7 +145,7 @@ class VmcValidator:
             if found:
                 # print('Found {} in cache'.format(key))
                 if e is None:
-                    return
+                    return c
                 else:
                     raise e
 
@@ -168,12 +223,15 @@ class VmcValidator:
             validator = CertificateValidator(leaf,
                                              intermediate_certs=intermediates,
                                              validation_context=context)
+
             validator.validate_usage(
                 # Any key usage
                 key_usage=set([]),
                 # 5.1.5. Verify that the end-entity certificate is a Verified Mark Certificate
                 extended_key_usage=set([oidExtKeyUsageBrandIndicatorForMessageIdentification])
             )
+
+            c = self._extractVMC(validator)
 
             if self.opts.verifyDNSName:
                 hostname = self.domain
@@ -271,3 +329,41 @@ class VmcValidator:
             raise e
 
         self._saveValidationResultToCache(key, None)
+        return c
+
+    def _extractVMC(self, v: CertificateValidator) -> Vmc:
+        """
+        Extract information from the certificate downloaded from internet
+
+        Parameters
+        ----------
+        v: CertificateValidator
+
+        Returns
+        -------
+        Vmc
+        """
+
+        try:
+            c = v._certificate.native['tbs_certificate']
+
+            vmc = Vmc(version=c['version'],
+                      serialNumber=c['serial_number'],
+                      trademarkRegistration=c['subject'][oidTrademarkRegistration],
+                      issuer=c['issuer']['organization_name'],
+                      organizationName=c['subject']['organization_name'],
+                      validFrom=c['validity']['not_before'],
+                      expireOn=c['validity']['not_after'],
+                      certifiedDomains=[])
+
+            for ext in c['extensions']:
+                if ext['extn_id'] == 'subject_alt_name':
+                    if isinstance(ext['extn_value'], list):
+                        vmc.certifiedDomains += ext['extn_value']
+                    elif isinstance(ext['extn_value'], str):
+                        vmc.certifiedDomains.append(ext['extn_value'])
+
+            return vmc
+
+        except:
+            return None
