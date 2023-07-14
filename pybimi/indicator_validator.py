@@ -3,12 +3,38 @@ import tempfile
 from urllib.parse import urlparse
 import subprocess
 import re
+from xml.dom import minidom
 
 from .bimi import *
 from .exception import *
 from .utils import *
 from .options import *
 from .cache import *
+
+class Indicator:
+    """
+    A class used to represent a SVG
+    
+    Attributes
+    ----------
+    title: str
+    size: int
+        Size in bytes
+    version: str
+    baseProfile: str
+    """
+
+    def __init__(self, title: str,
+                       size: int,
+                       version: str,
+                       baseProfile: str) -> None:
+        self.title = title
+        self.size = size
+        self.version = version
+        self.baseProfile = baseProfile
+
+    def __repr__(self) -> str:
+        return str(self.__dict__)
 
 class IndicatorValidator:
     """
@@ -55,11 +81,15 @@ class IndicatorValidator:
         if self.cache is not None:
             self.cache.set(key, value)
 
-    def validate(self):
+    def validate(self) -> Indicator:
         """
         Validate the BIMI indicator. The indicator is downloaded from the URI
         with some HTTP options. If the indicator is downloaded successfully, it
         will be validated by some validation options.
+
+        Returns
+        -------
+        Indicator
 
         Raises
         ------
@@ -67,6 +97,9 @@ class IndicatorValidator:
 
         BimiTempfail
         """
+
+        # SVG information holder
+        i = None
 
         h = hashlib.new('md5')
         h.update(self.uri.encode())
@@ -77,7 +110,7 @@ class IndicatorValidator:
             if found:
                 # print('Found {} in cache'.format(key))
                 if e is None:
-                    return
+                    return i
                 else:
                     raise e
 
@@ -111,6 +144,8 @@ class IndicatorValidator:
             e = BimiTempfail(e)
             self._saveValidationResultToCache(key, e)
             raise e
+
+        i = self._extractSVG(path)
 
         try:
             cmd = [self.opts.javaPath, '-jar', self.opts.jingJarPath, '-c', self.opts.rncSchemaPath, path]
@@ -146,3 +181,38 @@ class IndicatorValidator:
         os.remove(path)
 
         self._saveValidationResultToCache(key, None)
+        return i
+
+    def _extractSVG(self, path: str) -> Indicator:
+        """
+        Extract SVG information from the indicator downloaded from internet
+
+        Parameters
+        ----------
+        path: str
+            Local path of the downloaded indicator
+
+        Returns
+        -------
+        Indicator
+        """
+
+        try:
+            doc = minidom.parse(path)
+            svg = doc.getElementsByTagName('svg')[0].attributes.items()
+            title = doc.getElementsByTagName('title')[0].firstChild.nodeValue
+            i = Indicator(title=title,
+                          size=os.path.getsize(path),
+                          version='',
+                          baseProfile='')
+            for item in svg:
+                if item[0] == 'version':
+                    i.version = item[1]
+                elif item[0] == 'baseProfile':
+                    i.baseProfile = item[1]
+
+            return i
+
+        except:
+            return None
+
