@@ -18,6 +18,33 @@ CACERT = os.path.join(HERE, 'cacert.pem')
 oidExtKeyUsageBrandIndicatorForMessageIdentification = '1.3.6.1.5.5.7.3.31'
 
 class VmcValidator:
+    """
+    A class used to validate a BIMI VMC
+
+    Attributes
+    ----------
+    vmcUri: str
+        URI of the VMC
+    indicatorUri: str
+        URI of the BIMI indicator
+    domain: str,
+        The domain
+    opts: VmcOptions
+        VMC validation options
+    lookupOpts: LookupOptions
+        DNS lookup options
+    indicatorOpts: IndicatorOptions
+        Indicator validation options
+    httpOpts: HttpOptions
+        HTTP options
+    cache: Cache
+        Cache
+
+    Methods
+    -------
+    validate()
+        Validate the VMC
+    """
     def __init__(self, vmcUri: str,
                        indicatorUri: str,
                        domain: str=None,
@@ -40,6 +67,17 @@ class VmcValidator:
             self.cache.set(key, value)
 
     def validate(self):
+        """
+        Validate the VMC. The VMC is downloaded from the URI with some HTTP
+        options. If the indicator is downloaded successfully, it will be
+        validated by some validation options.
+
+        Raises
+        ------
+        BimiFail
+
+        BimiTempfail
+        """
         if not self.vmcUri:
             return
 

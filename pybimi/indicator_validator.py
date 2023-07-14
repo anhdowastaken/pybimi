@@ -11,6 +11,26 @@ from .options import *
 from .cache import *
 
 class IndicatorValidator:
+    """
+    A class used to validate a BIMI indicator
+
+    Attributes
+    ----------
+    uri: str
+        URI of the BIMI indicator
+    opts: IndicatorOptions
+        Indicator validation options
+    httpOpts: HttpOptions
+        HTTP options
+    cache: Cache
+        Cache
+
+    Methods
+    -------
+    validate()
+        Validate the BIMI indicator
+    """
+
     def __init__(self, uri: str,
                        opts: IndicatorOptions=IndicatorOptions(),
                        httpOpts: HttpOptions=HttpOptions(),
@@ -21,10 +41,33 @@ class IndicatorValidator:
         self.cache = cache
 
     def _saveValidationResultToCache(self, key: str, value: Exception):
+        """
+        Save validation result to cache
+
+        Parameters
+        ----------
+        key: str
+            A key
+        value: Exception
+            An exception
+        """
+
         if self.cache is not None:
             self.cache.set(key, value)
 
     def validate(self):
+        """
+        Validate the BIMI indicator. The indicator is downloaded from the URI
+        with some HTTP options. If the indicator is downloaded successfully, it
+        will be validated by some validation options.
+
+        Raises
+        ------
+        BimiFail
+
+        BimiTempfail
+        """
+
         h = hashlib.new('md5')
         h.update(self.uri.encode())
         key = 'bimi_indicator_validation_result_{}'.format(h.hexdigest())

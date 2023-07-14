@@ -9,6 +9,35 @@ def download(uri: str,
              userAgent: str='',
              maxSizeInBytes: int=0,
              cache: Cache=None) -> bytes:
+    """
+    Download a thing from internet via its URI
+
+    Parameters
+    ----------
+    uri: str
+        An URI
+    timeout: int=30
+        HTTP timeout
+    userAgent: str=''
+        HTTP User Agent
+    maxSizeInBytes: int=0
+        Maximum size in bytes or BimiFail will be raised
+    cache: Cache=None
+        Cache
+
+    Returns
+    -------
+    bytes:
+        Data in bytes
+
+    Raises
+    ------
+        BimiFail
+
+        BimiTempfail
+
+    """
+
     h = hashlib.new('md5')
     h.update(uri.encode())
     key = 'bimi_downloaded_data_{}'.format(h.hexdigest())
