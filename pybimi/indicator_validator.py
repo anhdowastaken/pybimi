@@ -116,12 +116,12 @@ class IndicatorValidator:
 
         url = urlparse(self.uri)
         if url is None:
-            e = BimiFail('invalid Location URI')
+            e = BimiFail('invalid SVG URI')
             self._saveValidationResultToCache(key, e)
             raise e
 
         if url.scheme != 'https':
-            e = BimiFail('the Location URI is not served by HTTPS')
+            e = BimiFail('the SVG URI is not served by HTTPS')
             self._saveValidationResultToCache(key, e)
             raise e
 
