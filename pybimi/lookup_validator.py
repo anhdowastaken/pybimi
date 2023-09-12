@@ -186,7 +186,7 @@ class LookupValidator:
 
             kv = s.split('=', 1)
             if len(kv) != 2:
-                e = BimiFail('malformed params')
+                e = BimiFail('invalid tag')
                 if collectAllBimiFail:
                     self.bimiFailErrors.append(e)
                 else:
