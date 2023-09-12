@@ -108,12 +108,13 @@ class VmcValidator:
         self.indicatorOpts = indicatorOpts
         self.httpOpts = httpOpts
         self.cache = cache
+        self.svgImages = []
 
     def _saveValidationResultToCache(self, key: str, value: Exception):
         if self.cache is not None:
             self.cache.set(key, value)
 
-    def validate(self) -> Vmc:
+    def validate(self, extractSvg=False) -> Vmc:
         """
         Validate the VMC. The VMC is downloaded from the URI with some HTTP
         options. If the indicator is downloaded successfully, it will be
@@ -289,12 +290,16 @@ class VmcValidator:
                         self._saveValidationResultToCache(key, e)
                         raise e
 
-                    hashArr += extractHashArray(ext['extn_value'].native)
+                    hashArr += extractHashArray(ext['extn_value'].native, extractSvg=extractSvg)
 
             if len(hashArr) == 0:
                 e = BimiFail('no hash found in VMC')
                 self._saveValidationResultToCache(key, e)
                 raise e
+
+            if extractSvg:
+                for hash in hashArr:
+                    self.svgImages.append(hash[1])
 
             try:
                 indicatorData = download(self.indicatorUri,
@@ -312,9 +317,9 @@ class VmcValidator:
 
             hashMatch = False
             for hash in hashArr:
-                h = hashlib.new(hash.algorithm)
+                h = hashlib.new(hash[0].algorithm)
                 h.update(indicatorData)
-                if h.digest() == hash.value:
+                if h.digest() == hash[0].value:
                     hashMatch = True
                     break
 

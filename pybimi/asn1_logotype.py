@@ -1,3 +1,5 @@
+import gzip
+import base64
 from asn1crypto import core
 from .exception import BimiFail
 
@@ -249,7 +251,7 @@ class LogotypeHash():
 
         self.value = value
 
-def extractHashArray(data) -> list:
+def extractHashArray(data, extractSvg=False) -> list:
     """
     Extract hash array from ASN1 logo type extension data
 
@@ -261,7 +263,7 @@ def extractHashArray(data) -> list:
     Returns
     -------
     list
-        A list of LogotypeHash
+        A list of tuple: (LogotypeHash object, SVG data string)
     """
 
     parsed = ASN1LogotypeExtn.load(data)
@@ -276,11 +278,23 @@ def extractHashArray(data) -> list:
     for image in parsed['subjectLogo'].chosen['image']:
         if 'imageDetails' in image and \
            'logotypeHash' in image['imageDetails']:
-            for hash in image['imageDetails']['logotypeHash']:
+            for i in range(len(image['imageDetails']['logotypeHash'])):
+                hash = image['imageDetails']['logotypeHash'][i]
+
                 if 'hashAlg' in hash and \
                    'algorithm' in hash['hashAlg'] and \
                    'hashValue' in hash:
-                    hashArr.append(LogotypeHash(hash['hashAlg']['algorithm'].native,
-                                                hash['hashValue'].native))
+                    hashObj = LogotypeHash(hash['hashAlg']['algorithm'].native,
+                                           hash['hashValue'].native)
+
+                    svg = None
+                    if extractSvg and \
+                       'logotypeURI' in image['imageDetails'] and \
+                       i < len(image['imageDetails']['logotypeURI'].native):
+                        data = (base64.b64decode(str(image['imageDetails']['logotypeURI'].native[i]).split("data:image/svg+xml;base64,")[1]))
+                        svg = (gzip.decompress(data).decode())
+                        svg = svg.strip()
+
+                    hashArr.append((hashObj, svg))
 
     return hashArr
