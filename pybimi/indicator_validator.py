@@ -136,6 +136,7 @@ class IndicatorValidator:
                 f.write(indicatorData)
 
         except BimiFail as e:
+            os.remove(path)
             self._saveValidationResultToCache(key, e)
             raise e
 
@@ -164,16 +165,19 @@ class IndicatorValidator:
                 pattern = '.+:\d+:\d+:\s+(error|fatal):\s+(.+)'
                 matches = re.findall(pattern, line)
                 if len(matches) > 0:
+                    os.remove(path)
                     e = BimiFail(matches[0][1])
                     self._saveValidationResultToCache(key, e)
                     raise e
 
                 else:
+                    os.remove(path)
                     e = BimiFail(line)
                     self._saveValidationResultToCache(key, e)
                     raise e
 
             else:
+                os.remove(path)
                 e = BimiFail(out)
                 self._saveValidationResultToCache(key, e)
                 raise e
