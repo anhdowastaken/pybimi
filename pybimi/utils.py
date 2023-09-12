@@ -1,5 +1,6 @@
 import requests
 import hashlib
+from urllib.parse import urlparse
 
 from .exception import BimiFail, BimiTempfail
 from .cache import Cache
@@ -80,3 +81,60 @@ def download(uri: str,
         cache.set(key, data)
 
     return data
+
+def getData(uri: str,
+            timeout: int=30,
+            userAgent: str='',
+            maxSizeInBytes: int=0,
+            cache: Cache=None) -> bytes:
+    """
+    Get a thing via its URI. It can be a local file or an Internet thing.
+
+    Parameters
+    ----------
+    uri: str
+        An URI
+    timeout: int=30
+        HTTP timeout
+    userAgent: str=''
+        HTTP User Agent
+    maxSizeInBytes: int=0
+        Maximum size in bytes or BimiFail will be raised
+    cache: Cache=None
+        Cache
+
+    Returns
+    -------
+    bytes:
+        Data in bytes
+
+    Raises
+    ------
+        BimiFail
+
+        BimiTempfail
+
+    """
+
+    url = urlparse(uri)
+    if url is None:
+        return None
+
+    local_file = False
+    if url.scheme == '':
+        local_file = True
+
+    elif url.scheme in ('http', 'https'):
+        pass
+
+    else:
+        return None
+
+    if local_file:
+        try:
+            with open(uri, 'rb') as f:
+                return f.read()
+        except Exception as e:
+            raise BimiTempfail(e)
+
+    return download(uri, timeout, userAgent, maxSizeInBytes, cache)
