@@ -177,7 +177,7 @@ class LookupValidator:
 
             kv = s.split('=', 1)
             if len(kv) != 2:
-                raise BimiFail('malformed params')
+                raise BimiFail('invalid tag')
             params[kv[0].strip()] = kv[1].strip()
 
         return params
