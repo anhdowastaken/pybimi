@@ -151,12 +151,12 @@ class VmcValidator:
 
         url = urlparse(self.vmcUri)
         if url is None:
-            e = BimiFail('invalid Authority Evidence Location URI')
+            e = BimiFail('invalid VMC URI')
             self._saveValidationResultToCache(key, e)
             raise e
 
         if url.scheme != 'https':
-            e = BimiFail('the Authority Evidence Location URI is not served by HTTPS')
+            e = BimiFail('the VMC URI is not served by HTTPS')
             self._saveValidationResultToCache(key, e)
             raise e
 
@@ -319,7 +319,7 @@ class VmcValidator:
                     break
 
             if not hashMatch:
-                e = BimiFail('data from Location and data from Authority Evidence Location are not identical')
+                e = BimiFail('SVG logo file is not binary equal to the image embedded in VMC certificate')
                 self._saveValidationResultToCache(key, e)
                 raise e
 
