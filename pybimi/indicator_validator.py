@@ -65,6 +65,7 @@ class IndicatorValidator:
         self.opts = opts
         self.httpOpts = httpOpts
         self.cache = cache
+        self.bimiFailErrors = [] # Only errors when validating with Jing
 
     def _saveValidationResultToCache(self, key: str, value: Exception):
         """
@@ -81,7 +82,7 @@ class IndicatorValidator:
         if self.cache is not None:
             self.cache.set(key, value)
 
-    def validate(self) -> Indicator:
+    def validate(self, collectAllBimiFail=False) -> Indicator:
         """
         Validate the BIMI indicator. The indicator is downloaded from the URI
         with some HTTP options. If the indicator is downloaded successfully, it
@@ -161,22 +162,31 @@ class IndicatorValidator:
                 pattern = '.+:\d+:\d+:\s+(error|fatal):\s+(.+)'
                 matches = re.findall(pattern, line)
                 if len(matches) > 0:
-                    os.remove(path)
                     e = BimiFail(matches[0][1])
-                    self._saveValidationResultToCache(key, e)
-                    raise e
+                    if collectAllBimiFail:
+                        self.bimiFailErrors.append(e)
+                    else:
+                        os.remove(path)
+                        self._saveValidationResultToCache(key, e)
+                        raise e
 
                 else:
-                    os.remove(path)
                     e = BimiFail(line)
-                    self._saveValidationResultToCache(key, e)
-                    raise e
+                    if collectAllBimiFail:
+                        self.bimiFailErrors.append(e)
+                    else:
+                        os.remove(path)
+                        self._saveValidationResultToCache(key, e)
+                        raise e
 
             else:
-                os.remove(path)
                 e = BimiFail(out)
-                self._saveValidationResultToCache(key, e)
-                raise e
+                if collectAllBimiFail:
+                    self.bimiFailErrors.append(e)
+                else:
+                    os.remove(path)
+                    self._saveValidationResultToCache(key, e)
+                    raise e
 
         os.remove(path)
 
