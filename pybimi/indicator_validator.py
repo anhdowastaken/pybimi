@@ -141,9 +141,7 @@ class IndicatorValidator:
 
         except Exception as e:
             os.remove(path)
-            e = BimiTempfail(e)
-            self._saveValidationResultToCache(key, e)
-            raise e
+            raise BimiTempfail(e)
 
         i = self._extractSVG(path)
 
@@ -152,9 +150,7 @@ class IndicatorValidator:
             proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
             os.remove(path)
-            e = BimiTempfail(e)
-            self._saveValidationResultToCache(key, e)
-            raise e
+            raise BimiTempfail(e)
 
         if proc.returncode != 0:
             out = proc.stdout.decode() + proc.stderr.decode()

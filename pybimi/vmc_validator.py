@@ -171,9 +171,7 @@ class VmcValidator:
             raise e
 
         except Exception as e:
-            e = BimiTempfail(e)
-            self._saveValidationResultToCache(key, e)
-            raise e
+            raise BimiTempfail(e)
 
         if not pem.detect(vmcData):
             e = BimiFail('PEM-encoded data not found')
@@ -306,9 +304,7 @@ class VmcValidator:
                 raise e
 
             except Exception as e:
-                e = BimiTempfail(e)
-                self._saveValidationResultToCache(key, e)
-                raise e
+                raise BimiTempfail(e)
 
             hashMatch = False
             for hash in hashArr:
