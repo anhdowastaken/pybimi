@@ -14,7 +14,7 @@ from .cache import *
 class Indicator:
     """
     A class used to represent a SVG
-    
+
     Attributes
     ----------
     title: str
@@ -120,7 +120,7 @@ class IndicatorValidator:
             self._saveValidationResultToCache(key, e)
             raise e
 
-        if url.scheme != 'https':
+        if url.scheme != '' and url.scheme != 'https':
             e = BimiFail('the Location URI is not served by HTTPS')
             self._saveValidationResultToCache(key, e)
             raise e
@@ -128,11 +128,11 @@ class IndicatorValidator:
         fd, path = tempfile.mkstemp(prefix='pybimi', suffix='.svg')
         try:
             with os.fdopen(fd, 'wb') as f:
-                indicatorData = download(self.uri,
-                                         self.httpOpts.httpTimeout,
-                                         self.httpOpts.httpUserAgent,
-                                         self.opts.maxSizeInBytes,
-                                         self.cache)
+                indicatorData = getData(self.uri,
+                                        self.httpOpts.httpTimeout,
+                                        self.httpOpts.httpUserAgent,
+                                        self.opts.maxSizeInBytes,
+                                        self.cache)
                 f.write(indicatorData)
 
         except BimiFail as e:

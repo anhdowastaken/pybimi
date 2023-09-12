@@ -155,17 +155,18 @@ class VmcValidator:
             self._saveValidationResultToCache(key, e)
             raise e
 
-        if url.scheme != 'https':
+        if url.scheme != '' and url.scheme != 'https':
             e = BimiFail('the Authority Evidence Location URI is not served by HTTPS')
             self._saveValidationResultToCache(key, e)
             raise e
 
         try:
-            vmcData = download(self.vmcUri,
-                               self.httpOpts.httpTimeout,
-                               self.httpOpts.httpUserAgent,
-                               self.opts.maxSizeInBytes,
-                               self.cache)
+            vmcData = getData(self.vmcUri,
+                              self.httpOpts.httpTimeout,
+                              self.httpOpts.httpUserAgent,
+                              self.opts.maxSizeInBytes,
+                              self.cache)
+
         except BimiFail as e:
             self._saveValidationResultToCache(key, e)
             raise e
@@ -297,10 +298,12 @@ class VmcValidator:
                 raise e
 
             try:
-                indicatorData = download(self.indicatorUri,
-                                         self.httpOpts.httpTimeout,
-                                         self.httpOpts.httpUserAgent,
-                                         self.indicatorOpts.maxSizeInBytes)
+                indicatorData = getData(self.indicatorUri,
+                                        self.httpOpts.httpTimeout,
+                                        self.httpOpts.httpUserAgent,
+                                        self.indicatorOpts.maxSizeInBytes,
+                                        self.cache)
+
             except BimiFail as e:
                 self._saveValidationResultToCache(key, e)
                 raise e
