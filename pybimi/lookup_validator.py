@@ -37,8 +37,9 @@ class LookupValidator:
             self.actualSelector = self.opts.selector.strip()
         else:
             self.actualSelector = DEFAULT_SELECTOR
+        self.bimiFailErrors = [] # Only errors when parsing
 
-    def validate(self) -> BimiRecord:
+    def validate(self, collectAllBimiFail=False) -> BimiRecord:
         """
         Validate the BIMI DNS record. The record is fetched from the DNS server
         with some lookup options. If the record is fetched successfully, its
@@ -80,7 +81,7 @@ class LookupValidator:
                 # Keep using input selector if it exists
                 txt = self._lookup()
 
-        rec = self.parse(txt)
+        rec = self.parse(txt, collectAllBimiFail=collectAllBimiFail)
         return rec
 
     def _lookup(self) -> str:
@@ -105,7 +106,7 @@ class LookupValidator:
 
         return txt
 
-    def parse(self, txt: str) -> BimiRecord:
+    def parse(self, txt: str, collectAllBimiFail=False) -> BimiRecord:
         """
         Parse a DNS TXT record to a BimiRecord object
 
@@ -128,7 +129,7 @@ class LookupValidator:
         BimiFail
         """
 
-        params = self._parse(txt)
+        params = self._parse(txt, collectAllBimiFail=collectAllBimiFail)
 
         # Find unknown tags
         expectedKeys = ['v', 'l', 'a']
@@ -145,10 +146,18 @@ class LookupValidator:
                 break
 
         if foundUnexpectedKey:
-            raise BimiFail('unknown tag found')
+            e = BimiFail('unknown tag found')
+            if collectAllBimiFail:
+                self.bimiFailErrors.append(e)
+            else:
+                raise e
 
         if params['v'] != CURRENT_VERSION:
-            raise BimiFail('unsupported version')
+            e = BimiFail('unsupported version')
+            if collectAllBimiFail:
+                self.bimiFailErrors.append(e)
+            else:
+                raise e
 
         rec = BimiRecord()
         if 'l' in params:
@@ -165,7 +174,7 @@ class LookupValidator:
 
         return rec
 
-    def _parse(self, txt: str) -> dict:
+    def _parse(self, txt: str, collectAllBimiFail=False) -> dict:
         if not txt:
             raise BimiNoPolicy
 
@@ -177,7 +186,11 @@ class LookupValidator:
 
             kv = s.split('=', 1)
             if len(kv) != 2:
-                raise BimiFail('invalid tag')
+                e = BimiFail('invalid tag')
+                if collectAllBimiFail:
+                    self.bimiFailErrors.append(e)
+                else:
+                    raise e
             params[kv[0].strip()] = kv[1].strip()
 
         return params
