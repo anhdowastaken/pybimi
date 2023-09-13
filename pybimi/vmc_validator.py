@@ -85,6 +85,10 @@ class VmcValidator:
         HTTP options
     cache: Cache
         Cache
+    svgImages: list
+        List of SVG images extracted from the certificate when validating
+    bimiFailErrors: list
+        List of BIMI fail errors collected when parsing the DNS TXT record
 
     Methods
     -------
@@ -120,6 +124,13 @@ class VmcValidator:
         Validate the VMC. The VMC is downloaded from the URI with some HTTP
         options. If the indicator is downloaded successfully, it will be
         validated by some validation options.
+
+        Parameters
+        ----------
+        extractSvg: bool
+            If set, try to find and extract corresponding SVG image, save it to the attribute svgImages
+        collectAllBimiFail: bool
+            If set, instead of raising a BimiFail exception, save it to the attribute bimiFailErrors
 
         Returns
         -------

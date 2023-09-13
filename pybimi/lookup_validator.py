@@ -19,6 +19,8 @@ class LookupValidator:
         Actual domain
     actualSelector: str
         Actual selector
+    bimiFailErrors: list
+        List of BIMI fail errors collected when parsing the DNS TXT record
 
     Methods
     -------
@@ -44,6 +46,11 @@ class LookupValidator:
         Validate the BIMI DNS record. The record is fetched from the DNS server
         with some lookup options. If the record is fetched successfully, its
         syntax will be checked. Adn it will be parsed to a BimiRecord object.
+
+        Parameters
+        ----------
+        collectAllBimiFail: bool
+            If set, instead of raising a BimiFail exception, save it to the attribute bimiFailErrors
 
         Returns
         -------
@@ -114,6 +121,8 @@ class LookupValidator:
         ----------
         txt: str
             A DNS TXT record
+        collectAllBimiFail: bool
+            If set, instead of raising a BimiFail exception, save it to the attribute bimiFailErrors
 
         Returns
         -------

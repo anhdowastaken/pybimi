@@ -50,6 +50,8 @@ class IndicatorValidator:
         HTTP options
     cache: Cache
         Cache
+    bimiFailErrors: list
+        List of BIMI fail errors collected when validating with Jing
 
     Methods
     -------
@@ -87,6 +89,11 @@ class IndicatorValidator:
         Validate the BIMI indicator. The indicator is downloaded from the URI
         with some HTTP options. If the indicator is downloaded successfully, it
         will be validated by some validation options.
+
+        Parameters
+        ----------
+        collectAllBimiFail: bool
+            If set, instead of raising a BimiFail exception, save it to the attribute bimiFailErrors
 
         Returns
         -------

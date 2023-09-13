@@ -259,6 +259,8 @@ def extractHashArray(data, extractSvg=False) -> list:
     ----------
     data: any
         A byte string of BER or DER-encoded data
+    extractSvg: bool
+        If set, try to find and extract corresponding SVG image
 
     Returns
     -------
