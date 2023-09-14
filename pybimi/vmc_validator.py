@@ -73,6 +73,10 @@ class VmcValidator:
         URI of the VMC
     indicatorUri: str
         URI of the BIMI indicator
+    localVMC: bool
+        If set, it means the vmcUri is a local file path
+    localIndicator: bool
+        If set, it means the indicatorUri is a local file path
     domain: str,
         The domain
     opts: VmcOptions
@@ -98,6 +102,8 @@ class VmcValidator:
 
     def __init__(self, vmcUri: str,
                        indicatorUri: str,
+                       localVMC: bool=False,
+                       localIndicator: bool=False,
                        domain: str=None,
                        opts: VmcOptions=VmcOptions(),
                        lookupOpts: LookupOptions=LookupOptions,
@@ -106,6 +112,8 @@ class VmcValidator:
                        cache: Cache=None) -> None:
         self.vmcUri = vmcUri
         self.indicatorUri = indicatorUri
+        self.localVMC = localVMC
+        self.localIndicator = localIndicator
         self.domain = domain
         self.opts = opts
         self.lookupOpts = lookupOpts
@@ -168,17 +176,18 @@ class VmcValidator:
             self._saveValidationResultToCache(key, e)
             raise e
 
-        if url.scheme != '' and url.scheme != 'https':
+        if not self.localVMC and url.scheme != 'https':
             e = BimiFail('the VMC URI is not served by HTTPS')
             self._saveValidationResultToCache(key, e)
             raise e
 
         try:
-            vmcData = getData(self.vmcUri,
-                              self.httpOpts.httpTimeout,
-                              self.httpOpts.httpUserAgent,
-                              self.opts.maxSizeInBytes,
-                              self.cache)
+            vmcData = getData(uri=self.vmcUri,
+                              localFile=self.localVMC,
+                              timeout=self.httpOpts.httpTimeout,
+                              userAgent=self.httpOpts.httpUserAgent,
+                              maxSizeInBytes=self.opts.maxSizeInBytes,
+                              cache=self.cache)
 
         except BimiFail as e:
             self._saveValidationResultToCache(key, e)
@@ -325,11 +334,12 @@ class VmcValidator:
                     self.svgImages.append(hash[1])
 
             try:
-                indicatorData = getData(self.indicatorUri,
-                                        self.httpOpts.httpTimeout,
-                                        self.httpOpts.httpUserAgent,
-                                        self.indicatorOpts.maxSizeInBytes,
-                                        self.cache)
+                indicatorData = getData(uri=self.indicatorUri,
+                                        localFile=self.localIndicator,
+                                        timeout=self.httpOpts.httpTimeout,
+                                        userAgent=self.httpOpts.httpUserAgent,
+                                        maxSizeInBytes=self.indicatorOpts.maxSizeInBytes,
+                                        cache=self.cache)
 
             except BimiFail as e:
                 self._saveValidationResultToCache(key, e)
