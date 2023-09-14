@@ -83,6 +83,7 @@ def download(uri: str,
     return data
 
 def getData(uri: str,
+            localFile: bool=False,
             timeout: int=30,
             userAgent: str='',
             maxSizeInBytes: int=0,
@@ -94,6 +95,8 @@ def getData(uri: str,
     ----------
     uri: str
         An URI
+    localFile: bool=False
+        If set, it means the uri is a local file path
     timeout: int=30
         HTTP timeout
     userAgent: str=''
@@ -116,25 +119,19 @@ def getData(uri: str,
 
     """
 
-    url = urlparse(uri)
-    if url is None:
-        return None
-
-    local_file = False
-    if url.scheme == '':
-        local_file = True
-
-    elif url.scheme in ('http', 'https'):
-        pass
-
-    else:
-        return None
-
-    if local_file:
+    if localFile:
         try:
             with open(uri, 'rb') as f:
                 return f.read()
         except Exception as e:
             raise BimiTempfail(e)
+
+    else:
+        url = urlparse(uri)
+        if url is None:
+            return None
+
+        if url.scheme not in ('http', 'https'):
+            return None
 
     return download(uri, timeout, userAgent, maxSizeInBytes, cache)

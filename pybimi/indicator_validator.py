@@ -44,6 +44,8 @@ class IndicatorValidator:
     ----------
     uri: str
         URI of the BIMI indicator
+    localFile: bool
+        If set, it means the uri is a local file path
     opts: IndicatorOptions
         Indicator validation options
     httpOpts: HttpOptions
@@ -60,10 +62,12 @@ class IndicatorValidator:
     """
 
     def __init__(self, uri: str,
+                       localFile: bool=False,
                        opts: IndicatorOptions=IndicatorOptions(),
                        httpOpts: HttpOptions=HttpOptions(),
                        cache: Cache=None) -> None:
         self.uri = uri
+        self.localFile = localFile
         self.opts = opts
         self.httpOpts = httpOpts
         self.cache = cache
@@ -128,7 +132,7 @@ class IndicatorValidator:
             self._saveValidationResultToCache(key, e)
             raise e
 
-        if url.scheme != '' and url.scheme != 'https':
+        if not self.localFile and url.scheme != 'https':
             e = BimiFail('the SVG URI is not served by HTTPS')
             self._saveValidationResultToCache(key, e)
             raise e
@@ -136,11 +140,12 @@ class IndicatorValidator:
         fd, path = tempfile.mkstemp(prefix='pybimi', suffix='.svg')
         try:
             with os.fdopen(fd, 'wb') as f:
-                indicatorData = getData(self.uri,
-                                        self.httpOpts.httpTimeout,
-                                        self.httpOpts.httpUserAgent,
-                                        self.opts.maxSizeInBytes,
-                                        self.cache)
+                indicatorData = getData(uri=self.uri,
+                                        localFile=self.localFile,
+                                        timeout=self.httpOpts.httpTimeout,
+                                        userAgent=self.httpOpts.httpUserAgent,
+                                        maxSizeInBytes=self.opts.maxSizeInBytes,
+                                        cache=self.cache)
                 f.write(indicatorData)
 
         except BimiFail as e:
