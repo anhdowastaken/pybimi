@@ -40,6 +40,7 @@ class LookupValidator:
         else:
             self.actualSelector = DEFAULT_SELECTOR
         self.bimiFailErrors = [] # Only errors when parsing
+        self.txt = ''
 
     def validate(self, collectAllBimiFail=False) -> BimiRecord:
         """
@@ -77,18 +78,17 @@ class LookupValidator:
             raise BimiFail('empty domain')
 
         self.actualDomain = self.domain.strip()
-        txt = ''
         try:
-            txt = self._lookup()
+            self.txt = self._lookup()
         except (BimiNoPolicy, BimiFail):
             fld = get_fld(self.domain, fix_protocol=True, fail_silently=True)
             if fld and fld.strip() and fld != self.domain:
                 self.actualDomain = fld
                 # The second try with the effective top level domain
                 # Keep using input selector if it exists
-                txt = self._lookup()
+                self.txt = self._lookup()
 
-        rec = self.parse(txt, collectAllBimiFail=collectAllBimiFail)
+        rec = self.parse(self.txt, collectAllBimiFail=collectAllBimiFail)
         return rec
 
     def _lookup(self) -> str:
