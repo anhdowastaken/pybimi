@@ -97,7 +97,7 @@ class VmcValidator:
     """
 
     def __init__(self, vmcUri: str,
-                       indicatorUri: str,
+                       indicatorUri: str=None,
                        domain: str=None,
                        opts: VmcOptions=VmcOptions(),
                        lookupOpts: LookupOptions=LookupOptions,
@@ -324,35 +324,36 @@ class VmcValidator:
                 for hash in hashArr:
                     self.svgImages.append(hash[1])
 
-            try:
-                indicatorData = getData(self.indicatorUri,
-                                        self.httpOpts.httpTimeout,
-                                        self.httpOpts.httpUserAgent,
-                                        self.indicatorOpts.maxSizeInBytes,
-                                        self.cache)
+            if self.indicatorUri and self.opts.verifySVGImage:
+                try:
+                    indicatorData = getData(self.indicatorUri,
+                                            self.httpOpts.httpTimeout,
+                                            self.httpOpts.httpUserAgent,
+                                            self.indicatorOpts.maxSizeInBytes,
+                                            self.cache)
 
-            except BimiFail as e:
-                self._saveValidationResultToCache(key, e)
-                raise e
-
-            except Exception as e:
-                raise BimiTempfail(e)
-
-            hashMatch = False
-            for hash in hashArr:
-                h = hashlib.new(hash[0].algorithm)
-                h.update(indicatorData)
-                if h.digest() == hash[0].value:
-                    hashMatch = True
-                    break
-
-            if not hashMatch:
-                e = BimiFail('SVG logo file is not binary equal to the image embedded in VMC certificate')
-                if collectAllBimiFail:
-                    self.bimiFailErrors.append(e)
-                else:
+                except BimiFail as e:
                     self._saveValidationResultToCache(key, e)
                     raise e
+
+                except Exception as e:
+                    raise BimiTempfail(e)
+
+                hashMatch = False
+                for hash in hashArr:
+                    h = hashlib.new(hash[0].algorithm)
+                    h.update(indicatorData)
+                    if h.digest() == hash[0].value:
+                        hashMatch = True
+                        break
+
+                if not hashMatch:
+                    e = BimiFail('SVG logo file is not binary equal to the image embedded in VMC certificate')
+                    if collectAllBimiFail:
+                        self.bimiFailErrors.append(e)
+                    else:
+                        self._saveValidationResultToCache(key, e)
+                        raise e
 
         except Exception as e:
             e = BimiFail(e)
