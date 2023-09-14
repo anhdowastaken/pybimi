@@ -78,6 +78,8 @@ class VmcOptions:
         If the certificate is valid for the TLD, accept any its subdomain
     revocationCheckAndOscpCheck: bool=False
         Ensure the certificate was not revoked and passed OSCP check
+    verifySVGImage: bool=True
+        Ensure the external SVG logo image and the one embedded in the certificate are the same
     httpOpts=HttpOptions()
         HTTP options
     indicatorOpts=IndicatorOptions()
@@ -88,11 +90,13 @@ class VmcOptions:
                        verifyDNSName: bool=True,
                        verifyDNSNameAcceptSubdomain: bool=False,
                        revocationCheckAndOscpCheck: bool=False,
+                       verifySVGImage: bool=True,
                        httpOpts=HttpOptions(),
                        indicatorOpts=IndicatorOptions()) -> None:
         self.maxSizeInBytes = maxSizeInBytes
         self.verifyDNSName = verifyDNSName
         self.verifyDNSNameAcceptSubdomain = verifyDNSNameAcceptSubdomain
         self.revocationCheckAndOscpCheck = revocationCheckAndOscpCheck
+        self.verifySVGImage = verifySVGImage
         self.httpOpts = httpOpts
         self.indicatorOpts = indicatorOpts
