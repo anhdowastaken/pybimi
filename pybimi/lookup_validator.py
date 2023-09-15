@@ -65,7 +65,7 @@ class LookupValidator:
 
         BimiFail
 
-        BimiTempfail
+        BimiTemfailCannotAccess
         """
 
         # https://datatracker.ietf.org/doc/html/draft-blank-ietf-bimi-02#appendix-B
@@ -98,7 +98,7 @@ class LookupValidator:
         except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer) as e:
             raise BimiNoPolicy(e)
         except (dns.resolver.LifetimeTimeout, dns.resolver.NoNameservers) as e:
-            raise BimiTempfail(e)
+            raise BimiTemfailCannotAccess(e)
         except dns.resolver.YXDOMAIN as e:
             raise BimiFail(e)
 
@@ -135,7 +135,7 @@ class LookupValidator:
 
         BimiDeclined
 
-        BimiFail
+        BimiFailInvalidFormat
         """
 
         params = self._parse(txt, collectAllBimiFail=collectAllBimiFail)
@@ -155,14 +155,14 @@ class LookupValidator:
                 break
 
         if foundUnexpectedKey:
-            e = BimiFail('unknown tag found')
+            e = BimiFailInvalidFormat('unknown tag found')
             if collectAllBimiFail:
                 self.bimiFailErrors.append(e)
             else:
                 raise e
 
         if params['v'] != CURRENT_VERSION:
-            e = BimiFail('unsupported version')
+            e = BimiFailInvalidFormat('unsupported version')
             if collectAllBimiFail:
                 self.bimiFailErrors.append(e)
             else:
@@ -195,7 +195,7 @@ class LookupValidator:
 
             kv = s.split('=', 1)
             if len(kv) != 2:
-                e = BimiFail('invalid tag')
+                e = BimiFailInvalidFormat('invalid tag')
                 if collectAllBimiFail:
                     self.bimiFailErrors.append(e)
                 else:

@@ -2,7 +2,7 @@ import requests
 import hashlib
 from urllib.parse import urlparse
 
-from .exception import BimiFail, BimiTempfail, BimiTempfailNetwork
+from .exception import *
 from .cache import Cache
 
 def download(uri: str,
@@ -35,7 +35,7 @@ def download(uri: str,
     ------
         BimiFail
 
-        BimiTempfail
+        BimiTemfailCannotAccess
 
     """
 
@@ -50,37 +50,39 @@ def download(uri: str,
             return data
 
     headers = {'User-Agent': userAgent}
-    resp = requests.get(uri,
-                        stream=True,
-                        timeout=timeout,
-                        headers=headers)
+    try:
+        resp = requests.get(uri,
+                            stream=True,
+                            timeout=timeout,
+                            headers=headers)
+        resp.raise_for_status()
 
-    if resp.status_code != 200:
-        raise BimiTempfailNetwork('{} {}'.format(resp.status_code, resp.reason))
-
-    data = None
-    if maxSizeInBytes > 0:
-        if int(resp.headers.get('Content-Length', 0)) > maxSizeInBytes:
-            raise BimiFail('downloaded data is bigger than {} bytes'.format(maxSizeInBytes))
-
-        body = []
-        length = 0
-        for chunk in resp.iter_content(1024):
-            body.append(chunk)
-            length += len(chunk)
-            if length > maxSizeInBytes:
+        data = None
+        if maxSizeInBytes > 0:
+            if int(resp.headers.get('Content-Length', 0)) > maxSizeInBytes:
                 raise BimiFail('downloaded data is bigger than {} bytes'.format(maxSizeInBytes))
 
-        data = b''.join(body)
+            body = []
+            length = 0
+            for chunk in resp.iter_content(1024):
+                body.append(chunk)
+                length += len(chunk)
+                if length > maxSizeInBytes:
+                    raise BimiFail('downloaded data is bigger than {} bytes'.format(maxSizeInBytes))
 
-    else:
-        data = resp.content
+            data = b''.join(body)
 
-    # Cache
-    if cache is not None:
-        cache.set(key, data)
+        else:
+            data = resp.content
 
-    return data
+        # Cache
+        if cache is not None:
+            cache.set(key, data)
+
+        return data
+
+    except requests.exceptions.RequestException as e:
+        raise BimiTemfailCannotAccess(str(e))
 
 def getData(uri: str,
             localFile: bool=False,
@@ -115,7 +117,7 @@ def getData(uri: str,
     ------
         BimiFail
 
-        BimiTempfail
+        BimiTemfailCannotAccess
 
     """
 
@@ -124,7 +126,7 @@ def getData(uri: str,
             with open(uri, 'rb') as f:
                 return f.read()
         except Exception as e:
-            raise BimiTempfail(e)
+            raise BimiTemfailCannotAccess(str(e))
 
     else:
         url = urlparse(uri)

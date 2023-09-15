@@ -61,7 +61,19 @@ class Validator():
 
         BimiFail
 
+        BimiFailInvalidURI
+
+        BimiFailInvalidFormat
+
+        BimiFailInvalidSVG
+
+        BimiFailInvalidVMC
+
         BimiTempfail
+
+        BimiTemfailCannotAccess
+
+        BimiTemfailJingError
         """
 
         lv = LookupValidator(domain=self.domain, opts=self.lookupOpts)
