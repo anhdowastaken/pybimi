@@ -161,7 +161,7 @@ class LookupValidator:
             else:
                 raise e
 
-        if params['v'] != CURRENT_VERSION:
+        if 'v' not in params or params['v'] != CURRENT_VERSION:
             e = BimiFailInvalidFormat('unsupported version')
             if collectAllBimiFail:
                 self.bimiFailErrors.append(e)
@@ -174,8 +174,8 @@ class LookupValidator:
         if 'a' in params:
             rec.authorityEvidenceLocation = params['a'].strip()
 
-        if 'l' in params and not params['l'].strip() \
-            and 'a' in params and not params['l'].strip():
+        if ('l' in params and not params['l'].strip()) \
+            and ('a' in params and not params['a'].strip()):
             raise BimiDeclined
 
         rec.domain = self.actualDomain
@@ -198,6 +198,7 @@ class LookupValidator:
                 e = BimiFailInvalidFormat('invalid tag')
                 if collectAllBimiFail:
                     self.bimiFailErrors.append(e)
+                    continue
                 else:
                     raise e
             params[kv[0].strip()] = kv[1].strip()
