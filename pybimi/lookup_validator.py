@@ -170,7 +170,7 @@ class LookupValidator:
                 else:
                     raise e
 
-        if list(params.keys())[0] != 'v':
+        if len(list(params.keys())) > 0 and list(params.keys())[0] != 'v':
             e = BimiFailInvalidFormat('v= tag is not the first tag')
             if collectAllBimiFail:
                 self.bimiFailErrors.append(e)
