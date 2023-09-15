@@ -144,13 +144,13 @@ class LookupValidator:
         expectedKeys = ['v', 'l', 'a']
         foundUnexpectedKey = False
         for actualKey in params:
-            found = False
+            matchExpectedKeys = False
             for key in expectedKeys:
                 if actualKey.strip().lower() == key.strip().lower():
-                    found = True
+                    matchExpectedKeys = True
                     break
 
-            if not found:
+            if not matchExpectedKeys:
                 foundUnexpectedKey = True
                 break
 
@@ -161,7 +161,23 @@ class LookupValidator:
             else:
                 raise e
 
-        if 'v' not in params or params['v'] != CURRENT_VERSION:
+        requiredKeys = ['v', 'l']
+        for key in requiredKeys:
+            if key not in params:
+                e = BimiFailInvalidFormat('{}= tag not found'.format(key))
+                if collectAllBimiFail:
+                    self.bimiFailErrors.append(e)
+                else:
+                    raise e
+
+        if list(params.keys())[0] != 'v':
+            e = BimiFailInvalidFormat('v= tag is not the first tag')
+            if collectAllBimiFail:
+                self.bimiFailErrors.append(e)
+            else:
+                raise e
+
+        if params['v'] != CURRENT_VERSION:
             e = BimiFailInvalidFormat('unsupported version')
             if collectAllBimiFail:
                 self.bimiFailErrors.append(e)
