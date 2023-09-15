@@ -148,6 +148,10 @@ class IndicatorValidator:
                                         cache=self.cache)
                 f.write(indicatorData)
 
+        except BimiTempfailNetwork as e: 
+            os.remove(path)
+            raise e
+
         except BimiFail as e:
             os.remove(path)
             self._saveValidationResultToCache(key, e)

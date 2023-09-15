@@ -13,5 +13,8 @@ class BimiTempfail(BimiError):
     The problem can be resolved by retrying later.
     """
 
+class BimiTempfailNetwork(BimiTempfail):
+    """Raised when there is any network problem in the environment"""
+
 class BimiFail(BimiError):
     """Raised when any critical error is found"""
