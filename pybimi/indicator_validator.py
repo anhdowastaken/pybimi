@@ -121,6 +121,9 @@ class IndicatorValidator:
         # SVG information holder
         i = None
 
+        if not (self.uri and self.uri.strip()):
+            return i
+
         h = hashlib.new('md5')
         h.update(self.uri.encode())
         key = 'bimi_indicator_validation_result_{}'.format(h.hexdigest())

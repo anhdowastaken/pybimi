@@ -160,7 +160,7 @@ class VmcValidator:
         # Certificate information holder
         c = None
 
-        if not self.vmcUri:
+        if not (self.vmcUri and self.vmcUri.strip()):
             return c
 
         h = hashlib.new('md5')

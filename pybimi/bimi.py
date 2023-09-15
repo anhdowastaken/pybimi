@@ -21,10 +21,10 @@ class BimiRecord:
     """
 
     def __init__(self) -> None:
-        self.domain = ''
+        self.domain = None
         self.selector = DEFAULT_SELECTOR
-        self.location = ''
-        self.authorityEvidenceLocation = ''
+        self.location = None
+        self.authorityEvidenceLocation = None
 
     def __repr__(self) -> str:
         return 'd: {}, s: {}, l: {}, a: {}' \
