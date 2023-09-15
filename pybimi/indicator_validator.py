@@ -107,7 +107,15 @@ class IndicatorValidator:
         ------
         BimiFail
 
+        BimiFailInvalidURI
+
+        BimiFailInvalidSVG
+
         BimiTempfail
+
+        BimiTemfailCannotAccess
+
+        BimiTemfailJingError
         """
 
         # SVG information holder
@@ -128,12 +136,12 @@ class IndicatorValidator:
 
         url = urlparse(self.uri)
         if url is None:
-            e = BimiFail('invalid SVG URI')
+            e = BimiFailInvalidURI('invalid SVG URI')
             self._saveValidationResultToCache(key, e)
             raise e
 
         if not self.localFile and url.scheme != 'https':
-            e = BimiFail('the SVG URI is not served by HTTPS')
+            e = BimiFailInvalidURI('the SVG URI is not served by HTTPS')
             self._saveValidationResultToCache(key, e)
             raise e
 
@@ -148,7 +156,7 @@ class IndicatorValidator:
                                         cache=self.cache)
                 f.write(indicatorData)
 
-        except BimiTempfailNetwork as e: 
+        except BimiTempfail as e:
             os.remove(path)
             raise e
 
@@ -159,7 +167,7 @@ class IndicatorValidator:
 
         except Exception as e:
             os.remove(path)
-            raise BimiTempfail(e)
+            raise BimiTempfail(str(e))
 
         i = self._extractSVG(path)
 
@@ -168,7 +176,7 @@ class IndicatorValidator:
             proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception as e:
             os.remove(path)
-            raise BimiTempfail(e)
+            raise BimiTemfailJingError(str(e))
 
         if proc.returncode != 0:
             out = proc.stdout.decode() + proc.stderr.decode()
@@ -178,7 +186,7 @@ class IndicatorValidator:
                 pattern = '.+:\d+:\d+:\s+(error|fatal):\s+(.+)'
                 matches = re.findall(pattern, line)
                 if len(matches) > 0:
-                    e = BimiFail(matches[0][1])
+                    e = BimiFailInvalidSVG(matches[0][1])
                     if collectAllBimiFail:
                         self.bimiFailErrors.append(e)
                     else:
@@ -187,7 +195,7 @@ class IndicatorValidator:
                         raise e
 
                 else:
-                    e = BimiFail(line)
+                    e = BimiFailInvalidSVG(line)
                     if collectAllBimiFail:
                         self.bimiFailErrors.append(e)
                     else:
@@ -196,7 +204,7 @@ class IndicatorValidator:
                         raise e
 
             else:
-                e = BimiFail(out)
+                e = BimiFailInvalidSVG(out)
                 if collectAllBimiFail:
                     self.bimiFailErrors.append(e)
                 else:
