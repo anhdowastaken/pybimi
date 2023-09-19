@@ -33,3 +33,27 @@ class BimiFailInvalidSVG(BimiFail):
 
 class BimiFailInvalidVMC(BimiFail):
     """Raised when VMC certificate is invalid"""
+
+class BimiFailInvalidVMCNotPEM(BimiFailInvalidVMC):
+    """Raised when input data is not valid PEM-encoded data"""
+
+class BimiFailInvalidVMCNoLeafFound(BimiFailInvalidVMC):
+    """Raised when no VMC found"""
+
+class BimiFailInvalidVMCMultiLeafs(BimiFailInvalidVMC):
+    """Raised when more than one VMC found"""
+
+class BimiFailInvalidVMCUnmatchedDomain(BimiFailInvalidVMC):
+    """Raised when the VMC is not valid for input domain"""
+
+class BimiFailInvalidVMCUnmatchedSAN(BimiFailInvalidVMC):
+    """Raised when SAN in the VMC does not match input domain"""
+
+class BimiFailInvalidVMCCriticalLogotype(BimiFailInvalidVMC):
+    """Raised when the logotype extension in the VMC is CRITICAL"""
+
+class BimiFailInvalidVMCNoHashFound(BimiFailInvalidVMC):
+    """Raised when no hash found in the VMC"""
+
+class BimiFailInvalidVMCUnmatchedSVG(BimiFailInvalidVMC):
+    """Raised when input SVG logo file is not binary equal to the image embedded in the VMC"""
