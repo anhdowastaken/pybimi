@@ -263,23 +263,7 @@ class VmcValidator:
             )
         except Exception as e:
             string = str(e)
-            # TODO: Update map if upgrade certvalidator
-            exception_pattern_map = {
-                BimiFailInvalidVMCUnsupportedAlgorithm: '^The path could not be validated because the signature of .+ uses the unsupported algorithm .+$',
-                BimiFailInvalidVMCCannotVerify: '^The path could not be validated because the signature of .+ could not be verified$',
-                BimiFailInvalidVMCNotValidBefore: '^The path could not be validated because .+ is not valid until .+$',
-                BimiFailInvalidVMCExpiredAfter: '^The path could not be validated because .+ expired .+$',
-                BimiFailInvalidVMCNoRevocationFound: '^The path could not be validated because no revocation information could be found for .+$',
-                BimiFailInvalidVMCCheckRevocationFailed: '^The path could not be validated because the .+ revocation checks failed: .+$',
-                BimiFailInvalidVMCIssuerNotMatch: '^The path could not be validated because the .+ issuer name could not be matched$',
-                BimiFailInvalidVMCInvalidPolicySetFound: '^The path could not be validated because there is no valid set of policies for .+$',
-                BimiFailInvalidVMCAnyPolicyFound: '^The path could not be validated because .+ contains a policy mapping for the "any policy"$',
-                BimiFailInvalidVMCNotCA: '^The path could not be validated because .+ is not a CA$',
-                BimiFailInvalidVMCExceedMaximumPathLength: '^The path could not be validated because it exceeds the maximum path length$',
-                BimiFailInvalidVMCNotAllowToSign: '^The path could not be validated because + is not allowed to sign certificates$',
-                BimiFailInvalidVMCUnsupportedCriticalExtensionFound: '^The path could not be validated because .+ contains the following unsupported critical extension.+: .+$',
-                BimiFailInvalidVMCNoValidPolicySetFound: '^The path could not be validated because there is no valid set of policies for .+$',
-            }
+            exception_pattern_map = self._get_exception_certvalidator_pattern_map()
             found_pattern = False
             for exception, pattern in exception_pattern_map.items():
                 if re.search(pattern=pattern, string=string):
@@ -463,3 +447,22 @@ class VmcValidator:
 
         except:
             return None
+
+    def _get_exception_certvalidator_pattern_map():
+        # TODO: Update map if upgrade certvalidator
+        return {
+            BimiFailInvalidVMCUnsupportedAlgorithm: '^The path could not be validated because the signature of .+ uses the unsupported algorithm .+$',
+            BimiFailInvalidVMCCannotVerify: '^The path could not be validated because the signature of .+ could not be verified$',
+            BimiFailInvalidVMCNotValidBefore: '^The path could not be validated because .+ is not valid until .+$',
+            BimiFailInvalidVMCExpiredAfter: '^The path could not be validated because .+ expired .+$',
+            BimiFailInvalidVMCNoRevocationFound: '^The path could not be validated because no revocation information could be found for .+$',
+            BimiFailInvalidVMCCheckRevocationFailed: '^The path could not be validated because the .+ revocation checks failed: .+$',
+            BimiFailInvalidVMCIssuerNotMatch: '^The path could not be validated because the .+ issuer name could not be matched$',
+            BimiFailInvalidVMCInvalidPolicySetFound: '^The path could not be validated because there is no valid set of policies for .+$',
+            BimiFailInvalidVMCAnyPolicyFound: '^The path could not be validated because .+ contains a policy mapping for the "any policy"$',
+            BimiFailInvalidVMCNotCA: '^The path could not be validated because .+ is not a CA$',
+            BimiFailInvalidVMCExceedMaximumPathLength: '^The path could not be validated because it exceeds the maximum path length$',
+            BimiFailInvalidVMCNotAllowToSign: '^The path could not be validated because + is not allowed to sign certificates$',
+            BimiFailInvalidVMCUnsupportedCriticalExtensionFound: '^The path could not be validated because .+ contains the following unsupported critical extension.+: .+$',
+            BimiFailInvalidVMCNoValidPolicySetFound: '^The path could not be validated because there is no valid set of policies for .+$',
+        }
