@@ -57,3 +57,44 @@ class BimiFailInvalidVMCNoHashFound(BimiFailInvalidVMC):
 
 class BimiFailInvalidVMCUnmatchedSVG(BimiFailInvalidVMC):
     """Raised when input SVG logo file is not binary equal to the image embedded in the VMC"""
+
+class BimiFailInvalidVMCUnsupportedAlgorithm(BimiFailInvalidVMC):
+    """Raised when the signature uses the unsupported algorithm"""
+
+class BimiFailInvalidVMCCannotVerify(BimiFailInvalidVMC):
+    """Raised when the signature could not be verified"""
+
+class BimiFailInvalidVMCNotValidBefore(BimiFailInvalidVMC):
+    """Raised when the certificate is only valid after now"""
+
+class BimiFailInvalidVMCExpiredAfter(BimiFailInvalidVMC):
+    """Raised when the certificate was expired now"""
+
+class BimiFailInvalidVMCNoRevocationFound(BimiFailInvalidVMC):
+    """Raised when no revocation information could be found"""
+
+class BimiFailInvalidVMCCheckRevocationFailed(BimiFailInvalidVMC):
+    """Raised when check revocation failed"""
+
+class BimiFailInvalidVMCIssuerNotMatch(BimiFailInvalidVMC):
+    """Raised when the issuer does not match"""
+
+class BimiFailInvalidVMCInvalidPolicySetFound(BimiFailInvalidVMC):
+    """Raised when an invalid policy set found"""
+
+class BimiFailInvalidVMCAnyPolicyFound(BimiFailInvalidVMC):
+    """Raised when a policy mapping for the \"any policy\""""
+
+class BimiFailInvalidVMCNotCA(BimiFailInvalidVMC):
+    """Raised when the certificate is not CA"""
+
+class BimiFailInvalidVMCExceedMaximumPathLength(BimiFailInvalidVMC):
+    """Raised when maximum path length was exceeded"""
+class BimiFailInvalidVMCNotAllowToSign(BimiFailInvalidVMC):
+    """Raised when the certificate is not allowed to be signed"""
+
+class BimiFailInvalidVMCUnsupportedCriticalExtensionFound(BimiFailInvalidVMC):
+    """Raised when an unsupported critical extension found"""
+
+class BimiFailInvalidVMCNoValidPolicySetFound(BimiFailInvalidVMC):
+    """Raised when no valid policy set found"""

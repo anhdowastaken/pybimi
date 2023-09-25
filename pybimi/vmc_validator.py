@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+import re
 from urllib.parse import urlparse
 from asn1crypto import pem, x509
 from certvalidator import ValidationContext, CertificateValidator
@@ -210,191 +211,218 @@ class VmcValidator:
             self._saveValidationResultToCache(key, e)
             raise e
 
-        try:
-            intermediates = []
-            leaf = None
-            vmc = None
-            for _, _, der_bytes in pem.unarmor(vmcData, multiple=True):
-                cert = x509.Certificate.load(der_bytes)
-                # If the certificate is a CA, we add it to the intermediates pool.
-                # If not, we call it the leaf certificate.
-                if cert.ca:
-                    intermediates.append(der_bytes)
-                    continue
+        intermediates = []
+        leaf = None
+        vmc = None
+        for _, _, der_bytes in pem.unarmor(vmcData, multiple=True):
+            cert = x509.Certificate.load(der_bytes)
+            # If the certificate is a CA, we add it to the intermediates pool.
+            # If not, we call it the leaf certificate.
+            if cert.ca:
+                intermediates.append(der_bytes)
+                continue
 
-                # Certificate is not a CA, it must be our leaf certificate.
-                # If we already found one, bail with error.
-                if vmc is not None:
-                    e = BimiFailInvalidVMCMultiLeafs('more than one VMC found')
-                    self._saveValidationResultToCache(key, e)
-                    raise e
-
-                leaf = der_bytes
-                vmc = cert
-
-            # We exit the loop with no leaf certificate
-            if vmc is None:
-                e = BimiFailInvalidVMCNoLeafFound('no VMC found')
+            # Certificate is not a CA, it must be our leaf certificate.
+            # If we already found one, bail with error.
+            if vmc is not None:
+                e = BimiFailInvalidVMCMultiLeafs('more than one VMC found')
                 self._saveValidationResultToCache(key, e)
                 raise e
 
-            roots = []
-            with open(CACERT, 'rb') as f:
-                for _, _, der_bytes in pem.unarmor(f.read(), multiple=True):
-                    roots.append(der_bytes)
+            leaf = der_bytes
+            vmc = cert
 
-            # Finally, let's call Verify on our vmc with our fully configured options
-            # 5.1.1. Validate the authenticity of the certificate
-            # 5.1.2. Check the validity of the certificates in the certificate chain
-            # 5.1.3. Check that the certificates in the certificate chain are not revoked
-            # TODO: Separate revocation check and OSCP status check
-            context = ValidationContext(trust_roots=roots,
-                                        allow_fetching=self.opts.revocationCheckAndOscpCheck)
-            validator = CertificateValidator(leaf,
-                                             intermediate_certs=intermediates,
-                                             validation_context=context)
+        # We exit the loop with no leaf certificate
+        if vmc is None:
+            e = BimiFailInvalidVMCNoLeafFound('no VMC found')
+            self._saveValidationResultToCache(key, e)
+            raise e
 
+        roots = []
+        with open(CACERT, 'rb') as f:
+            for _, _, der_bytes in pem.unarmor(f.read(), multiple=True):
+                roots.append(der_bytes)
+
+        # Finally, let's call Verify on our vmc with our fully configured options
+        # 5.1.1. Validate the authenticity of the certificate
+        # 5.1.2. Check the validity of the certificates in the certificate chain
+        # 5.1.3. Check that the certificates in the certificate chain are not revoked
+        # TODO: Separate revocation check and OSCP status check
+        context = ValidationContext(trust_roots=roots,
+                                    allow_fetching=self.opts.revocationCheckAndOscpCheck)
+        validator = CertificateValidator(leaf,
+                                            intermediate_certs=intermediates,
+                                            validation_context=context)
+
+        try:
             validator.validate_usage(
                 # Any key usage
                 key_usage=set([]),
                 # 5.1.5. Verify that the end-entity certificate is a Verified Mark Certificate
                 extended_key_usage=set([oidExtKeyUsageBrandIndicatorForMessageIdentification])
             )
-
-            c = self._extractVMC(validator)
-
-            if self.opts.verifyDNSName:
-                hostname = self.domain
-                if not vmc.is_valid_domain_ip(hostname):
-                    invalidHostname = True
-
-                    if self.opts.verifyDNSNameAcceptSubdomain:
-                        # Try TLD
-                        fld = get_fld(self.domain, fix_protocol=True, fail_silently=True)
-                        hostname = fld
-                        if vmc.is_valid_domain_ip(hostname):
-                            invalidHostname = False
-
-                    if invalidHostname:
-                        e = BimiFailInvalidVMCUnmatchedDomain('the VMC is not valid for {} (valid domains include: {})'.format(hostname, ', '.join(vmc.valid_domains)))
-                        if collectAllBimiFail:
-                            self.bimiFailErrors.append(e)
-                        else:
-                            self._saveValidationResultToCache(key, e)
-                            raise e
-
-            # TODO: 5.1.4. Validate the proof of CT logging
-            # https://github.com/google/certificate-transparency/tree/master/python
-
-            # VMC Domain Verification
-            selectorSet = []
-            domainSet = []
-            for n in vmc.subject_alt_name_value:
-                san = n.native
-                if '_bimi' in san:
-                    selectorSet.append(san)
-                else:
-                    domainSet.append(san)
-
-            sanMatch = False
-            fld = get_fld(self.domain, fix_protocol=True, fail_silently=True)
-            for r in selectorSet:
-                if '{}._bimi.{}'.format(self.lookupOpts.selector, self.domain) == r or \
-                   '{}._bimi.{}'.format(self.lookupOpts.selector, fld) == r:
-                    sanMatch = True
-                    break
-            for r in domainSet:
-                if self.domain == r or fld == r:
-                    sanMatch = True
+        except Exception as e:
+            string = str(e)
+            # TODO: Update map if upgrade certvalidator
+            exception_pattern_map = {
+                BimiFailInvalidVMCUnsupportedAlgorithm: '^The path could not be validated because the signature of .+ uses the unsupported algorithm .+$',
+                BimiFailInvalidVMCCannotVerify: '^The path could not be validated because the signature of .+ could not be verified$',
+                BimiFailInvalidVMCNotValidBefore: '^The path could not be validated because .+ is not valid until .+$',
+                BimiFailInvalidVMCExpiredAfter: '^The path could not be validated because .+ expired .+$',
+                BimiFailInvalidVMCNoRevocationFound: '^The path could not be validated because no revocation information could be found for .+$',
+                BimiFailInvalidVMCCheckRevocationFailed: '^The path could not be validated because the .+ revocation checks failed: .+$',
+                BimiFailInvalidVMCIssuerNotMatch: '^The path could not be validated because the .+ issuer name could not be matched$',
+                BimiFailInvalidVMCInvalidPolicySetFound: '^The path could not be validated because there is no valid set of policies for .+$',
+                BimiFailInvalidVMCAnyPolicyFound: '^The path could not be validated because .+ contains a policy mapping for the "any policy"$',
+                BimiFailInvalidVMCNotCA: '^The path could not be validated because .+ is not a CA$',
+                BimiFailInvalidVMCExceedMaximumPathLength: '^The path could not be validated because it exceeds the maximum path length$',
+                BimiFailInvalidVMCNotAllowToSign: '^The path could not be validated because + is not allowed to sign certificates$',
+                BimiFailInvalidVMCUnsupportedCriticalExtensionFound: '^The path could not be validated because .+ contains the following unsupported critical extension.+: .+$',
+                BimiFailInvalidVMCNoValidPolicySetFound: '^The path could not be validated because there is no valid set of policies for .+$',
+            }
+            found_pattern = False
+            for exception, pattern in exception_pattern_map.items():
+                if re.search(pattern=pattern, string=string):
+                    found_pattern = True
+                    e = exception(string)
+                    if collectAllBimiFail:
+                        self.bimiFailErrors.append(e)
+                    else:
+                        self._saveValidationResultToCache(key, e)
+                        raise e
                     break
 
-            if not sanMatch:
-                e = BimiFailInvalidVMCUnmatchedSAN('domain does not match SAN in VMC')
+            if not found_pattern:
+                e = BimiFail(string)
                 if collectAllBimiFail:
                     self.bimiFailErrors.append(e)
                 else:
                     self._saveValidationResultToCache(key, e)
                     raise e
 
-            # Validation of VMC Evidence Document
-            hashArr = []
-            for ext in vmc['tbs_certificate']['extensions']:
-                if ext['extn_id'].native == oidLogotype:
-                    if ext['critical'].native:
-                        e = BimiFailInvalidVMCCriticalLogotype('the logotype extension in VMC is CRITICAL')
-                        if collectAllBimiFail:
-                            self.bimiFailErrors.append(e)
-                        else:
-                            self._saveValidationResultToCache(key, e)
-                            raise e
+        c = self._extractVMC(validator)
 
-                    hashArr += extractHashArray(ext['extn_value'].native, extractSvg=extractSvg)
+        if self.opts.verifyDNSName:
+            hostname = self.domain
+            if not vmc.is_valid_domain_ip(hostname):
+                invalidHostname = True
 
-            if len(hashArr) == 0:
-                e = BimiFailInvalidVMCNoHashFound('no hash found in VMC')
-                if collectAllBimiFail:
-                    self.bimiFailErrors.append(e)
-                else:
-                    self._saveValidationResultToCache(key, e)
-                    raise e
+                if self.opts.verifyDNSNameAcceptSubdomain:
+                    # Try TLD
+                    fld = get_fld(self.domain, fix_protocol=True, fail_silently=True)
+                    hostname = fld
+                    if vmc.is_valid_domain_ip(hostname):
+                        invalidHostname = False
 
-            if extractSvg:
-                for hash in hashArr:
-                    self.svgImages.append(hash[1])
-
-            if self.indicatorUri and self.opts.verifySVGImage:
-                try:
-                    indicatorData = getData(uri=self.indicatorUri,
-                                            localFile=self.localIndicator,
-                                            timeout=self.httpOpts.httpTimeout,
-                                            userAgent=self.httpOpts.httpUserAgent,
-                                            maxSizeInBytes=self.indicatorOpts.maxSizeInBytes,
-                                            cache=self.cache)
-
-                except Exception:
-                    e = BimiFail('cannot get SVG logo file to compare with the image embedded in VMC certificate')
+                if invalidHostname:
+                    e = BimiFailInvalidVMCUnmatchedDomain('the VMC is not valid for {} (valid domains include: {})'.format(hostname, ', '.join(vmc.valid_domains)))
                     if collectAllBimiFail:
                         self.bimiFailErrors.append(e)
                     else:
                         self._saveValidationResultToCache(key, e)
                         raise e
 
-                else:
-                    if indicatorData:
-                        hashMatch = False
-                        for hash in hashArr:
-                            h = hashlib.new(hash[0].algorithm)
-                            h.update(indicatorData)
-                            if h.digest() == hash[0].value:
-                                hashMatch = True
-                                break
+        # TODO: 5.1.4. Validate the proof of CT logging
+        # https://github.com/google/certificate-transparency/tree/master/python
 
-                        if not hashMatch:
-                            e = BimiFailInvalidVMCUnmatchedSVG('SVG logo file is not binary equal to the image embedded in VMC certificate')
-                            if collectAllBimiFail:
-                                self.bimiFailErrors.append(e)
-                            else:
-                                self._saveValidationResultToCache(key, e)
-                                raise e
+        # VMC Domain Verification
+        selectorSet = []
+        domainSet = []
+        for n in vmc.subject_alt_name_value:
+            san = n.native
+            if '_bimi' in san:
+                selectorSet.append(san)
+            else:
+                domainSet.append(san)
 
+        sanMatch = False
+        fld = get_fld(self.domain, fix_protocol=True, fail_silently=True)
+        for r in selectorSet:
+            if '{}._bimi.{}'.format(self.lookupOpts.selector, self.domain) == r or \
+                '{}._bimi.{}'.format(self.lookupOpts.selector, fld) == r:
+                sanMatch = True
+                break
+        for r in domainSet:
+            if self.domain == r or fld == r:
+                sanMatch = True
+                break
+
+        if not sanMatch:
+            e = BimiFailInvalidVMCUnmatchedSAN('domain does not match SAN in VMC')
+            if collectAllBimiFail:
+                self.bimiFailErrors.append(e)
+            else:
+                self._saveValidationResultToCache(key, e)
+                raise e
+
+        # Validation of VMC Evidence Document
+        hashArr = []
+        for ext in vmc['tbs_certificate']['extensions']:
+            if ext['extn_id'].native == oidLogotype:
+                if ext['critical'].native:
+                    e = BimiFailInvalidVMCCriticalLogotype('the logotype extension in VMC is CRITICAL')
+                    if collectAllBimiFail:
+                        self.bimiFailErrors.append(e)
                     else:
-                        e = BimiFail('SVG logo file is not valid to compare with the image embedded in VMC certificate')
+                        self._saveValidationResultToCache(key, e)
+                        raise e
+
+                hashArr += extractHashArray(ext['extn_value'].native, extractSvg=extractSvg)
+
+        if len(hashArr) == 0:
+            e = BimiFailInvalidVMCNoHashFound('no hash found in VMC')
+            if collectAllBimiFail:
+                self.bimiFailErrors.append(e)
+            else:
+                self._saveValidationResultToCache(key, e)
+                raise e
+
+        if extractSvg:
+            for hash in hashArr:
+                self.svgImages.append(hash[1])
+
+        if self.indicatorUri and self.opts.verifySVGImage:
+            try:
+                indicatorData = getData(uri=self.indicatorUri,
+                                        localFile=self.localIndicator,
+                                        timeout=self.httpOpts.httpTimeout,
+                                        userAgent=self.httpOpts.httpUserAgent,
+                                        maxSizeInBytes=self.indicatorOpts.maxSizeInBytes,
+                                        cache=self.cache)
+
+            except Exception:
+                e = BimiFail('cannot get SVG logo file to compare with the image embedded in VMC certificate')
+                if collectAllBimiFail:
+                    self.bimiFailErrors.append(e)
+                else:
+                    self._saveValidationResultToCache(key, e)
+                    raise e
+
+            else:
+                if indicatorData:
+                    hashMatch = False
+                    for hash in hashArr:
+                        h = hashlib.new(hash[0].algorithm)
+                        h.update(indicatorData)
+                        if h.digest() == hash[0].value:
+                            hashMatch = True
+                            break
+
+                    if not hashMatch:
+                        e = BimiFailInvalidVMCUnmatchedSVG('SVG logo file is not binary equal to the image embedded in VMC certificate')
                         if collectAllBimiFail:
                             self.bimiFailErrors.append(e)
                         else:
                             self._saveValidationResultToCache(key, e)
                             raise e
 
-        except (BimiTempfail, BimiFail) as e:
-            raise e
-
-        except Exception as e:
-            e = BimiFail(str(e))
-            if collectAllBimiFail:
-                self.bimiFailErrors.append(e)
-            else:
-                self._saveValidationResultToCache(key, e)
-                raise e
+                else:
+                    e = BimiFail('SVG logo file is not valid to compare with the image embedded in VMC certificate')
+                    if collectAllBimiFail:
+                        self.bimiFailErrors.append(e)
+                    else:
+                        self._saveValidationResultToCache(key, e)
+                        raise e
 
         self._saveValidationResultToCache(key, None)
         return c
