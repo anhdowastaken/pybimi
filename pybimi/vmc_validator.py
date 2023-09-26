@@ -448,7 +448,7 @@ class VmcValidator:
         except:
             return None
 
-    def _get_exception_certvalidator_pattern_map():
+    def _get_exception_certvalidator_pattern_map(self):
         # TODO: Update map if upgrade certvalidator
         return {
             BimiFailInvalidVMCUnsupportedAlgorithm: '^The path could not be validated because the signature of .+ uses the unsupported algorithm .+$',
