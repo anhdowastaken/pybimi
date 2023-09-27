@@ -22,6 +22,9 @@ class BimiTemfailJingError(BimiTempfail):
 class BimiFail(BimiError):
     """Raised when any critical error is found"""
 
+class BimiFailSizeLimitExceeded(BimiFail):
+    """Raised when size limit exceeded"""
+
 class BimiFailInvalidURI(BimiFail):
     """Raised when input URI is invalid"""
 
@@ -79,9 +82,6 @@ class BimiFailInvalidVMCCheckRevocationFailed(BimiFailInvalidVMC):
 class BimiFailInvalidVMCIssuerNotMatch(BimiFailInvalidVMC):
     """Raised when the issuer does not match"""
 
-class BimiFailInvalidVMCInvalidPolicySetFound(BimiFailInvalidVMC):
-    """Raised when an invalid policy set found"""
-
 class BimiFailInvalidVMCAnyPolicyFound(BimiFailInvalidVMC):
     """Raised when a policy mapping for the \"any policy\""""
 
@@ -98,3 +98,6 @@ class BimiFailInvalidVMCUnsupportedCriticalExtensionFound(BimiFailInvalidVMC):
 
 class BimiFailInvalidVMCNoValidPolicySetFound(BimiFailInvalidVMC):
     """Raised when no valid policy set found"""
+
+class BimiFailInvalidVMCNoMatchingIssuerFound(BimiFailInvalidVMC):
+    """Raised when no matching issuer found"""
