@@ -60,7 +60,7 @@ def download(uri: str,
         data = None
         if maxSizeInBytes > 0:
             if int(resp.headers.get('Content-Length', 0)) > maxSizeInBytes:
-                raise BimiFail('downloaded data is bigger than {} bytes'.format(maxSizeInBytes))
+                raise BimiFailSizeLimitExceeded('downloaded data is bigger than {} bytes'.format(maxSizeInBytes))
 
             body = []
             length = 0
@@ -68,7 +68,7 @@ def download(uri: str,
                 body.append(chunk)
                 length += len(chunk)
                 if length > maxSizeInBytes:
-                    raise BimiFail('downloaded data is bigger than {} bytes'.format(maxSizeInBytes))
+                    raise BimiFailSizeLimitExceeded('downloaded data is bigger than {} bytes'.format(maxSizeInBytes))
 
             data = b''.join(body)
 

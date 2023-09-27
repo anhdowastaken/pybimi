@@ -458,11 +458,11 @@ class VmcValidator:
             BimiFailInvalidVMCNoRevocationFound: '^The path could not be validated because no revocation information could be found for .+$',
             BimiFailInvalidVMCCheckRevocationFailed: '^The path could not be validated because the .+ revocation checks failed: .+$',
             BimiFailInvalidVMCIssuerNotMatch: '^The path could not be validated because the .+ issuer name could not be matched$',
-            BimiFailInvalidVMCInvalidPolicySetFound: '^The path could not be validated because there is no valid set of policies for .+$',
             BimiFailInvalidVMCAnyPolicyFound: '^The path could not be validated because .+ contains a policy mapping for the "any policy"$',
             BimiFailInvalidVMCNotCA: '^The path could not be validated because .+ is not a CA$',
             BimiFailInvalidVMCExceedMaximumPathLength: '^The path could not be validated because it exceeds the maximum path length$',
             BimiFailInvalidVMCNotAllowToSign: '^The path could not be validated because + is not allowed to sign certificates$',
-            BimiFailInvalidVMCUnsupportedCriticalExtensionFound: '^The path could not be validated because .+ contains the following unsupported critical extension.+: .+$',
+            BimiFailInvalidVMCUnsupportedCriticalExtensionFound: '^The path could not be validated because .+ contains the following unsupported critical extension.*: .+$',
             BimiFailInvalidVMCNoValidPolicySetFound: '^The path could not be validated because there is no valid set of policies for .+$',
+            BimiFailInvalidVMCNoMatchingIssuerFound: '^Unable to build a validation path for the certificate .+ - no issuer matching .+ was found$',
         }
