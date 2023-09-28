@@ -1,3 +1,4 @@
+import os
 import requests
 import hashlib
 from urllib.parse import urlparse
@@ -123,6 +124,9 @@ def getData(uri: str,
 
     if localFile:
         try:
+            if maxSizeInBytes > 0 and os.stat(uri).st_size > maxSizeInBytes:
+                raise BimiFailSizeLimitExceeded('data size is bigger than {} bytes'.format(maxSizeInBytes))
+
             with open(uri, 'rb') as f:
                 return f.read()
         except Exception as e:
