@@ -23,7 +23,7 @@ setup(
     install_requires=[
         'asn1crypto',
         'cachetools',
-        'certvalidator @ git+https://github.com/wbond/certvalidator@master',
+        'certvalidator @ git+https://github.com/wbond/certvalidator@1eaf36f5c8c22980b9a38572ae193023154e7bec',
         'dnspython',
         'requests',
         'tld',
