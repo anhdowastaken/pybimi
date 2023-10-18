@@ -30,10 +30,13 @@ class LookupOptions:
     ----------
     selector: str='default'
         A selector to fetch BIMI DNS TXT record
+    ns: str=None
+        Custom DNS nameserver
     """
 
-    def __init__(self, selector: str=DEFAULT_SELECTOR) -> None:
+    def __init__(self, selector: str=DEFAULT_SELECTOR, ns: str=None) -> None:
         self.selector = selector
+        self.ns = ns
 
 class IndicatorOptions:
     """
