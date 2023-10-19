@@ -95,8 +95,8 @@ class LookupValidator:
         qname = '{}._bimi.{}'.format(self.actualSelector, self.actualDomain)
         try:
             resolver = dns.resolver.Resolver()
-            if self.opts.ns:
-                resolver.nameservers = [self.opts.ns]
+            if self.opts.ns and isinstance(self.opts.ns, list):
+                resolver.nameservers = self.opts.ns
             answers = resolver.resolve(qname, 'TXT')
         except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer) as e:
             raise BimiNoPolicy(e)

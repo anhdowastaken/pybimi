@@ -34,7 +34,7 @@ class LookupOptions:
         Custom DNS nameserver
     """
 
-    def __init__(self, selector: str=DEFAULT_SELECTOR, ns: str=None) -> None:
+    def __init__(self, selector: str=DEFAULT_SELECTOR, ns=None) -> None:
         self.selector = selector
         self.ns = ns
 
