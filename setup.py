@@ -16,7 +16,7 @@ setup(
         ]
     },
     include_package_data=True,
-    url='https://github.com/anhdowastaken/pybimi',
+    url='https://bitbucket.org/twofive25dev/pybimi',
     license='LICENSE',
     description='A BIMI validator',
     python_requires='>=3',

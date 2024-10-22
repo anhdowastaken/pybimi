@@ -1,0 +1,17 @@
+pybimi
+Copyright 2024 TwoFive25, Inc.
+
+This product includes software developed at
+TwoFive25, Inc. (https://www.twofive25.com/).
+
+This product includes software from https://github.com/wbond/asn1crypto (MIT license)
+
+This product includes software from https://github.com/tkem/cachetools/ (MIT license)
+
+This product includes software from https://github.com/wbond/certvalidator (MIT license)
+
+This product includes software from https://github.com/rthalley/dnspython (ISC license)
+
+This product includes software from https://github.com/psf/requests (Apache 2.0 license)
+
+This product includes software from https://github.com/barseghyanartur/tld (MPL 1.1, license)
