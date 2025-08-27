@@ -17,8 +17,9 @@ from .cache import *
 HERE = os.path.split(__file__)[0]
 CACERT = os.path.join(HERE, 'cacert.pem')
 
-oidExtKeyUsageBrandIndicatorForMessageIdentification = '1.3.6.1.5.5.7.3.31'
-oidTrademarkRegistration = '1.3.6.1.4.1.53087.1.4'
+oidPilotIdentifier                                      = '1.3.6.1.4.1.53087.4.1'
+oidExtKeyUsageBrandIndicatorForMessageIdentification    = '1.3.6.1.5.5.7.3.31'
+oidTrademarkRegistration                                = '1.3.6.1.4.1.53087.1.4'
 
 class Vmc:
     """
@@ -248,6 +249,50 @@ class VmcValidator:
         # 5.1.2. Check the validity of the certificates in the certificate chain
         # 5.1.3. Check that the certificates in the certificate chain are not revoked
         # TODO: Separate revocation check and OSCP status check
+
+        # Patch certvalidator to support Pilot Identifier extension
+        import certvalidator.validate
+        import certvalidator.errors
+
+        # Store original function if not already patched
+        if not hasattr(certvalidator.validate, '_original_validate_path'):
+            certvalidator.validate._original_validate_path = certvalidator.validate._validate_path
+
+            def patched_validate_path(validation_context, path):
+                orig_func = certvalidator.validate._original_validate_path
+
+                # Try to catch the specific error and allow pilot identifier
+                try:
+                    return orig_func(validation_context, path)
+                except certvalidator.errors.PathValidationError as e:
+                    error_msg = str(e)
+                    if 'unsupported critical extension' in error_msg and oidPilotIdentifier in error_msg:
+                        # This is the pilot identifier - proceed without this check
+                        # We'll temporarily modify the certificate objects
+                        modified_path = []
+                        for cert in path:
+                            if oidPilotIdentifier in [str(ext) for ext in cert.critical_extensions]:
+                                # Temporarily remove pilot identifier from critical extensions
+                                original_critical = cert._critical_extensions
+                                cert._critical_extensions = set(ext for ext in original_critical if str(ext) != oidPilotIdentifier)
+                                modified_path.append((cert, original_critical))
+                            else:
+                                modified_path.append((cert, None))
+
+                        try:
+                            # Call original validation with the same path object but modified certificates
+                            result = orig_func(validation_context, path)
+                            return result
+                        finally:
+                            # Restore original critical extensions
+                            for cert, original_critical in modified_path:
+                                if original_critical is not None:
+                                    cert._critical_extensions = original_critical
+                    else:
+                        raise e
+
+            certvalidator.validate._validate_path = patched_validate_path
+
         context = ValidationContext(trust_roots=roots,
                                     allow_fetching=self.opts.revocationCheckAndOscpCheck)
         validator = CertificateValidator(leaf,
