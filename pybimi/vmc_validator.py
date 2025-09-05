@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from typing import List, Optional, Union
 import re
 import struct
 import time
@@ -9,20 +10,35 @@ from certvalidator import ValidationContext, CertificateValidator
 import hashlib
 from tld import get_fld
 
-from .bimi import *
-from .exception import *
-from .utils import *
-from .asn1_logotype import *
-from .options import *
-from .cache import *
+from .exception import (
+    BimiFail, BimiFailInvalidURI, BimiFailInvalidVMC,
+    BimiFailInvalidVMCNotPEM, BimiFailInvalidVMCNoLeafFound,
+    BimiFailInvalidVMCMultiLeafs, BimiFailInvalidVMCUnmatchedDomain,
+    BimiFailInvalidVMCUnmatchedSAN, BimiFailInvalidVMCCriticalLogotype,
+    BimiFailInvalidVMCNoHashFound, BimiFailInvalidVMCUnmatchedSVG,
+    BimiFailInvalidVMCUnsupportedAlgorithm, BimiFailInvalidVMCCannotVerify,
+    BimiFailInvalidVMCNotValidBefore, BimiFailInvalidVMCExpiredAfter,
+    BimiFailInvalidVMCNoRevocationFound, BimiFailInvalidVMCCheckRevocationFailed,
+    BimiFailInvalidVMCIssuerNotMatch, BimiFailInvalidVMCAnyPolicyFound,
+    BimiFailInvalidVMCNotCA, BimiFailInvalidVMCExceedMaximumPathLength,
+    BimiFailInvalidVMCNotAllowToSign, BimiFailInvalidVMCUnsupportedCriticalExtensionFound,
+    BimiFailInvalidVMCNoValidPolicySetFound, BimiFailInvalidVMCNoMatchingIssuerFound,
+    BimiFailInvalidVMCNoSCTFound, BimiFailInvalidVMCInvalidSCT, BimiFailInvalidVMCSCTFutureTimestamp,
+    BimiTempfail, BimiTemfailCannotAccess
+)
+from .utils import getData
+from .asn1_logotype import ASN1LogotypeExtn, LogotypeHash, extractHashArray, oidLogotype
+from .options import VmcOptions, LookupOptions, IndicatorOptions, HttpOptions
+from .cache import Cache
 
 HERE = os.path.split(__file__)[0]
 CACERT = os.path.join(HERE, 'cacert.pem')
 
-oidPilotIdentifier                                      = '1.3.6.1.4.1.53087.4.1'
-oidExtKeyUsageBrandIndicatorForMessageIdentification    = '1.3.6.1.5.5.7.3.31'
-oidTrademarkRegistration                                = '1.3.6.1.4.1.53087.1.4'
-oidSCTList                                              = '1.3.6.1.4.1.11129.2.4.2'
+# VMC-related OID constants as defined in BIMI specifications
+OID_PILOT_IDENTIFIER = '1.3.6.1.4.1.53087.4.1'
+OID_EXT_KEY_USAGE_BIMI = '1.3.6.1.5.5.7.3.31'
+OID_TRADEMARK_REGISTRATION = '1.3.6.1.4.1.53087.1.4'
+OID_SCT_LIST = '1.3.6.1.4.1.11129.2.4.2'
 
 class Vmc:
     """
@@ -269,15 +285,15 @@ class VmcValidator:
                     return orig_func(validation_context, path)
                 except certvalidator.errors.PathValidationError as e:
                     error_msg = str(e)
-                    if 'unsupported critical extension' in error_msg and oidPilotIdentifier in error_msg:
+                    if 'unsupported critical extension' in error_msg and OID_PILOT_IDENTIFIER in error_msg:
                         # This is the pilot identifier - proceed without this check
                         # We'll temporarily modify the certificate objects
                         modified_path = []
                         for cert in path:
-                            if oidPilotIdentifier in [str(ext) for ext in cert.critical_extensions]:
+                            if OID_PILOT_IDENTIFIER in [str(ext) for ext in cert.critical_extensions]:
                                 # Temporarily remove pilot identifier from critical extensions
                                 original_critical = cert._critical_extensions
-                                cert._critical_extensions = set(ext for ext in original_critical if str(ext) != oidPilotIdentifier)
+                                cert._critical_extensions = set(ext for ext in original_critical if str(ext) != OID_PILOT_IDENTIFIER)
                                 modified_path.append((cert, original_critical))
                             else:
                                 modified_path.append((cert, None))
@@ -307,7 +323,7 @@ class VmcValidator:
                 # Any key usage
                 key_usage=set([]),
                 # 5.1.5. Verify that the end-entity certificate is a Verified Mark Certificate
-                extended_key_usage=set([oidExtKeyUsageBrandIndicatorForMessageIdentification])
+                extended_key_usage=set([OID_EXT_KEY_USAGE_BIMI])
             )
         except Exception as e:
             string = str(e)
@@ -500,7 +516,7 @@ class VmcValidator:
         SCTs are embedded in the certificate as an X.509v3 extension.
         """
         for ext in vmc['tbs_certificate']['extensions']:
-            if ext['extn_id'].native == oidSCTList:
+            if ext['extn_id'].native == OID_SCT_LIST:
                 # SCT list is encoded as an ASN.1 OCTET STRING
                 sct_list_data = ext['extn_value'].native
                 return self._parseSCTList(sct_list_data)
@@ -646,7 +662,7 @@ class VmcValidator:
 
             vmc = Vmc(version=c['version'],
                       serialNumber=c['serial_number'],
-                      trademarkRegistration=c['subject'][oidTrademarkRegistration],
+                      trademarkRegistration=c['subject'][OID_TRADEMARK_REGISTRATION],
                       issuer=c['issuer']['organization_name'],
                       organizationName=c['subject']['organization_name'],
                       validFrom=c['validity']['not_before'],

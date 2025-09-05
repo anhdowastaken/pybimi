@@ -1,5 +1,6 @@
 import os
-from .bimi import *
+from typing import Optional
+from .bimi import DEFAULT_SELECTOR
 
 HERE = os.path.split(__file__)[0]
 JAVA = 'java'
@@ -8,33 +9,47 @@ RNC_SCHEMA = os.path.join(HERE, 'SVG_PS-latest.rnc')
 
 class HttpOptions:
     """
-    A class to represent HTTP options
+    Configuration options for HTTP requests.
 
-    Attributes
-    ----------
-    httpTimeout: int=30
-        HTTP timeout
-    httpUserAgent: str=''
-        HTTP User Agent
+    These options control how HTTP requests are made when fetching
+    BIMI indicators and VMC certificates from remote URLs.
+
+    Attributes:
+        httpTimeout: Request timeout in seconds
+        httpUserAgent: User-Agent header value for requests
     """
 
-    def __init__(self, httpTimeout: int=30, httpUserAgent: str='') -> None:
+    def __init__(self, httpTimeout: int = 30, httpUserAgent: str = '') -> None:
+        """
+        Initialize HTTP options.
+
+        Args:
+            httpTimeout: Timeout for HTTP requests in seconds
+            httpUserAgent: User-Agent string for HTTP requests
+        """
         self.httpTimeout = httpTimeout
         self.httpUserAgent = httpUserAgent
 
 class LookupOptions:
     """
-    A class to represent BIMI DNS lookup options
+    Configuration options for BIMI DNS record lookups.
 
-    Attributes
-    ----------
-    selector: str='default'
-        A selector to fetch BIMI DNS TXT record
-    ns: str=None
-        Custom DNS nameserver
+    These options control how BIMI DNS TXT records are queried,
+    including selector choice and custom DNS servers.
+
+    Attributes:
+        selector: BIMI selector for DNS queries (default: 'default')
+        ns: Custom DNS nameservers to use for queries
     """
 
-    def __init__(self, selector: str=DEFAULT_SELECTOR, ns=None) -> None:
+    def __init__(self, selector: str = DEFAULT_SELECTOR, ns: Optional[list] = None) -> None:
+        """
+        Initialize DNS lookup options.
+
+        Args:
+            selector: BIMI selector for DNS record queries
+            ns: List of custom DNS nameserver IPs to use
+        """
         self.selector = selector
         self.ns = ns
 
@@ -61,11 +76,11 @@ class IndicatorOptions:
                        javaPath: str=JAVA,
                        jingJarPath: str=JING_JAR,
                        rncSchemaPath: str=RNC_SCHEMA) -> None:
-       self.maxSizeInBytes = maxSizeInBytes
-       self.httpOpts = httpOpts
-       self.javaPath = javaPath
-       self.jingJarPath = jingJarPath
-       self.rncSchemaPath = rncSchemaPath
+        self.maxSizeInBytes = maxSizeInBytes
+        self.httpOpts = httpOpts
+        self.javaPath = javaPath
+        self.jingJarPath = jingJarPath
+        self.rncSchemaPath = rncSchemaPath
 
 class VmcOptions:
     """

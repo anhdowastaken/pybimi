@@ -1,58 +1,57 @@
 from threading import Lock
+from typing import Any, Tuple
 from cachetools import TTLCache
 
-class Cache():
+class Cache:
     """
-    A class used to wrap cachetools.TTLCache
+    Thread-safe cache wrapper with TTL (Time To Live) functionality.
 
-    Attributes
-    ----------
-    cache: cachetools.TTLCache
-        cachetools.TTLCache object
-    lock: threading.Lock
-        A lock
+    This cache provides thread-safe access to a time-based cache with
+    automatic expiration of entries after a specified time period.
+
+    Attributes:
+        cache: TTLCache instance for storing cached data
+        lock: Threading lock for thread-safe operations
     """
 
-    def __init__(self, maxsize: int=100, ttl: int=1800) -> None:
+    def __init__(self, maxsize: int = 100, ttl: int = 1800) -> None:
+        """
+        Initialize cache with specified capacity and TTL.
+
+        Args:
+            maxsize: Maximum number of entries to store
+            ttl: Time to live in seconds (default: 30 minutes)
+        """
         self.cache = TTLCache(maxsize=maxsize, ttl=ttl)
         self.lock = Lock()
 
-    def set(self, key: str, value: any):
+    def set(self, key: str, value: Any) -> None:
         """
-        Save to cache
+        Store a key-value pair in the cache.
 
-        Parameters
-        ----------
-        key: str
-            A key
-        value: any
-            A value
+        Args:
+            key: Cache key identifier
+            value: Value to store (any serializable object)
         """
 
-        if self.cache is not None:
+        with self.lock:
+            self.cache[key] = value
+
+    def get(self, key: str) -> Tuple[bool, Any]:
+        """
+        Retrieve a value from the cache.
+
+        Args:
+            key: Cache key identifier
+
+        Returns:
+            Tuple of (exists, value) where exists is True if key found,
+            and value is the stored data or None if not found
+        """
+
+        if key in self.cache:
             with self.lock:
-                self.cache[key] = value
-
-    def get(self, key: str):
-        """
-        Get from cache
-
-        Parameters
-        ----------
-        key: str
-            A key
-
-        Returns
-        -------
-        existing: bool
-            Whether the key exists in cache
-        value: any
-            Corresponding value in cache of the key
-        """
-
-        if self.cache is not None and \
-           key in self.cache:
-            with self.lock:
-                return (True, self.cache[key])
+                if key in self.cache:  # Double-check after acquiring lock
+                    return (True, self.cache[key])
 
         return (False, None)
