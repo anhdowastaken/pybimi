@@ -1,9 +1,13 @@
+from typing import List, Optional
 import dns.resolver
 from tld import get_fld
 
-from .bimi import *
-from .exception import *
-from .options import *
+from .bimi import BimiRecord, DEFAULT_SELECTOR, CURRENT_VERSION
+from .exception import (
+    BimiError, BimiNoPolicy, BimiDeclined, BimiFail,
+    BimiFailInvalidFormat, BimiTemfailCannotAccess
+)
+from .options import LookupOptions
 
 class LookupValidator:
     """
@@ -30,16 +34,26 @@ class LookupValidator:
         Parse a BIMI DNS TXT record to a BimiRecord object
     """
 
-    def __init__(self, domain: str, opts=LookupOptions()) -> None:
-        self.domain = domain
-        self.opts = opts
-        # Actual
+    def __init__(self, domain: str, opts: Optional[LookupOptions] = None) -> None:
+        """
+        Initialize DNS lookup validator.
+
+        Args:
+            domain: Target domain for BIMI record lookup
+            opts: DNS lookup configuration options
+        """
+        if not domain or not isinstance(domain, str):
+            raise ValueError("Domain must be a non-empty string")
+
+        self.domain = domain.strip().lower()
+        self.opts = opts or LookupOptions()
+        # Actual domain and selector used for lookup
         self.actualDomain = self.domain
-        if self.opts and self.opts.selector and self.opts.selector.strip():
+        if self.opts.selector and self.opts.selector.strip():
             self.actualSelector = self.opts.selector.strip()
         else:
             self.actualSelector = DEFAULT_SELECTOR
-        self.bimiFailErrors = [] # Only errors when parsing
+        self.bimiFailErrors: List[BimiError] = []  # Collect parsing errors
         self.txt = ''
 
     def validate(self, collectAllBimiFail=False) -> BimiRecord:
@@ -68,9 +82,10 @@ class LookupValidator:
         BimiTemfailCannotAccess
         """
 
+        # BIMI DNS lookup with fallback mechanism per specification:
         # https://datatracker.ietf.org/doc/html/draft-blank-ietf-bimi-02#appendix-B
-        # Lookup selector._bimi.foo.example.com for the BIMI DNS record.
-        # If it did not exist, it would fall back to the lookup selector._bimi.example.com.
+        # 1. Try: selector._bimi.foo.example.com
+        # 2. Fallback: selector._bimi.example.com (effective TLD)
 
         # The first try
         # Use input domain and input selector (if it exists)
@@ -80,19 +95,35 @@ class LookupValidator:
         self.actualDomain = self.domain.strip()
         try:
             self.txt = self._lookup()
-        except (BimiNoPolicy, BimiFail):
+        except (BimiNoPolicy, BimiFail) as initial_error:
+            # Attempt fallback to effective top-level domain
             fld = get_fld(self.domain, fix_protocol=True, fail_silently=True)
-            if fld and fld.strip() and fld != self.domain:
-                self.actualDomain = fld
-                # The second try with the effective top level domain
-                # Keep using input selector if it exists
-                self.txt = self._lookup()
+            if fld and fld.strip() and fld.lower() != self.domain.lower():
+                self.actualDomain = fld.lower()
+                try:
+                    self.txt = self._lookup()
+                except Exception:
+                    # If fallback fails, raise the original error
+                    raise initial_error
+            else:
+                raise initial_error
 
         rec = self.parse(self.txt, collectAllBimiFail=collectAllBimiFail)
         return rec
 
     def _lookup(self) -> str:
-        qname = '{}._bimi.{}'.format(self.actualSelector, self.actualDomain)
+        """
+        Perform DNS TXT record lookup for BIMI policy.
+
+        Returns:
+            Raw TXT record content
+
+        Raises:
+            BimiNoPolicy: No BIMI record found
+            BimiTemfailCannotAccess: DNS query failed
+            BimiFail: DNS query error
+        """
+        qname = f'{self.actualSelector}._bimi.{self.actualDomain}'
         try:
             resolver = dns.resolver.Resolver()
             if self.opts.ns and isinstance(self.opts.ns, list):
@@ -108,11 +139,15 @@ class LookupValidator:
         if len(answers) == 0:
             raise BimiNoPolicy
 
-        # Long keys are split in multiple parts
-        txt = ''
+        # Concatenate multiple TXT record parts (RFC compliant)
+        txt_parts = []
         for rdata in answers:
-            # FIXME: https://github.com/rthalley/dnspython/blob/32ce73ab3fca0cfd7e5bf0af3b6443a6124b166a/dns/rdtypes/txtbase.py#L66
-            txt += rdata.to_text().strip('"').replace('" "', '')
+            # Remove quotes and concatenate split strings
+            # FIXME: Consider using rdata.strings for better handling
+            part = rdata.to_text().strip('"').replace('" "', '')
+            txt_parts.append(part)
+
+        txt = ''.join(txt_parts)
 
         return txt
 
@@ -143,35 +178,27 @@ class LookupValidator:
 
         params = self._parse(txt, collectAllBimiFail=collectAllBimiFail)
 
-        # Find unknown tags
-        expectedKeys = ['v', 'l', 'a']
-        foundUnexpectedKey = False
-        for actualKey in params:
-            matchExpectedKeys = False
-            for key in expectedKeys:
-                if actualKey.strip().lower() == key.strip().lower():
-                    matchExpectedKeys = True
-                    break
+        # Validate against expected BIMI tags
+        expected_keys = {'v', 'l', 'a'}  # version, location, authority
+        actual_keys = {key.lower() for key in params.keys()}
+        unexpected_keys = actual_keys - expected_keys
 
-            if not matchExpectedKeys:
-                foundUnexpectedKey = True
-                break
-
-        if foundUnexpectedKey:
-            e = BimiFailInvalidFormat('unknown tag found')
+        if unexpected_keys:
+            error = BimiFailInvalidFormat(f'Unknown tags found: {", ".join(unexpected_keys)}')
             if collectAllBimiFail:
-                self.bimiFailErrors.append(e)
+                self.bimiFailErrors.append(error)
             else:
-                raise e
+                raise error
 
-        requiredKeys = ['v', 'l']
-        for key in requiredKeys:
+        # Check for required tags
+        required_keys = ['v', 'l']  # version and location are mandatory
+        for key in required_keys:
             if key not in params:
-                e = BimiFailInvalidFormat('{}= tag not found'.format(key))
+                error = BimiFailInvalidFormat(f'Required tag "{key}=" not found')
                 if collectAllBimiFail:
-                    self.bimiFailErrors.append(e)
+                    self.bimiFailErrors.append(error)
                 else:
-                    raise e
+                    raise error
 
         if len(list(params.keys())) > 0 and list(params.keys())[0] != 'v':
             e = BimiFailInvalidFormat('v= tag is not the first tag')
@@ -202,24 +229,41 @@ class LookupValidator:
 
         return rec
 
-    def _parse(self, txt: str, collectAllBimiFail=False) -> dict:
+    def _parse(self, txt: str, collectAllBimiFail: bool = False) -> dict:
+        """
+        Parse BIMI DNS TXT record into key-value pairs.
+
+        Args:
+            txt: Raw TXT record content
+            collectAllBimiFail: Whether to collect all errors instead of raising
+
+        Returns:
+            Dictionary of parsed tag-value pairs
+
+        Raises:
+            BimiNoPolicy: Empty record
+            BimiFailInvalidFormat: Invalid record format
+        """
         if not txt:
             raise BimiNoPolicy
 
-        pairs = txt.split(';')
-        params = dict()
-        for s in pairs:
-            if not s.strip():
-                continue
+        if not txt.strip():
+            raise BimiNoPolicy("Empty BIMI record")
 
-            kv = s.split('=', 1)
-            if len(kv) != 2:
-                e = BimiFailInvalidFormat('invalid tag')
+        # Split on semicolon and parse key=value pairs
+        pairs = [pair.strip() for pair in txt.split(';') if pair.strip()]
+        params = {}
+
+        for pair in pairs:
+            if '=' not in pair:
+                error = BimiFailInvalidFormat(f'Invalid tag format: {pair}')
                 if collectAllBimiFail:
-                    self.bimiFailErrors.append(e)
+                    self.bimiFailErrors.append(error)
                     continue
                 else:
-                    raise e
-            params[kv[0].strip()] = kv[1].strip()
+                    raise error
+
+            key, value = pair.split('=', 1)
+            params[key.strip()] = value.strip()
 
         return params

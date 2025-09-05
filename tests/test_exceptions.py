@@ -1,6 +1,22 @@
 import unittest
 
-from pybimi.exception import *
+from pybimi.exception import (
+    BimiError, BimiNoPolicy, BimiDeclined, BimiTempfail, BimiTemfailCannotAccess,
+    BimiTemfailJingError, BimiFail, BimiFailSizeLimitExceeded, BimiFailInvalidURI,
+    BimiFailInvalidFormat, BimiFailInvalidSVG, BimiFailInvalidVMC,
+    BimiFailInvalidVMCNotPEM, BimiFailInvalidVMCNoLeafFound, BimiFailInvalidVMCMultiLeafs,
+    BimiFailInvalidVMCUnmatchedDomain, BimiFailInvalidVMCUnmatchedSAN,
+    BimiFailInvalidVMCCriticalLogotype, BimiFailInvalidVMCNoHashFound,
+    BimiFailInvalidVMCUnmatchedSVG, BimiFailInvalidVMCUnsupportedAlgorithm,
+    BimiFailInvalidVMCCannotVerify, BimiFailInvalidVMCNotValidBefore,
+    BimiFailInvalidVMCExpiredAfter, BimiFailInvalidVMCNoRevocationFound,
+    BimiFailInvalidVMCCheckRevocationFailed, BimiFailInvalidVMCIssuerNotMatch,
+    BimiFailInvalidVMCAnyPolicyFound, BimiFailInvalidVMCNotCA,
+    BimiFailInvalidVMCExceedMaximumPathLength, BimiFailInvalidVMCNotAllowToSign,
+    BimiFailInvalidVMCUnsupportedCriticalExtensionFound, BimiFailInvalidVMCNoValidPolicySetFound,
+    BimiFailInvalidVMCNoMatchingIssuerFound, BimiFailInvalidVMCNoSCTFound,
+    BimiFailInvalidVMCInvalidSCT, BimiFailInvalidVMCSCTFutureTimestamp
+)
 
 
 class TestExceptions(unittest.TestCase):

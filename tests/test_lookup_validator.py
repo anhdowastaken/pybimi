@@ -3,8 +3,10 @@ from unittest.mock import Mock, patch
 import dns.resolver
 
 from pybimi.lookup_validator import LookupValidator
-from pybimi.bimi import BimiRecord, DEFAULT_SELECTOR, CURRENT_VERSION
-from pybimi.exception import *
+from pybimi.bimi import BimiRecord, DEFAULT_SELECTOR
+from pybimi.exception import (
+    BimiNoPolicy, BimiDeclined, BimiFailInvalidFormat, BimiFail, BimiTemfailCannotAccess
+)
 from pybimi.options import LookupOptions
 
 

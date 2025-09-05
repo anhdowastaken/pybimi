@@ -27,5 +27,30 @@ class BimiRecord:
         self.authorityEvidenceLocation = None
 
     def __repr__(self) -> str:
-        return 'd: {}, s: {}, l: {}, a: {}' \
-            .format(self.domain, self.selector, self.location, self.authorityEvidenceLocation)
+        """
+        Return string representation of the BIMI record.
+
+        Returns:
+            Formatted string with domain, selector, location, and authority info
+        """
+        return (f'd: {self.domain}, s: {self.selector}, '
+                f'l: {self.location}, a: {self.authorityEvidenceLocation}')
+
+    def has_indicator(self) -> bool:
+        """
+        Check if this record has a valid indicator location.
+
+        Returns:
+            True if location field is not empty
+        """
+        return bool(self.location and self.location.strip())
+
+    def has_authority_evidence(self) -> bool:
+        """
+        Check if this record has authority evidence (VMC).
+
+        Returns:
+            True if authority evidence location is not empty
+        """
+        return bool(self.authorityEvidenceLocation and
+                   self.authorityEvidenceLocation.strip())

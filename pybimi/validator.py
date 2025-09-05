@@ -1,10 +1,12 @@
-from .options import *
+from typing import Optional
+from .options import LookupOptions, IndicatorOptions, VmcOptions, HttpOptions
 from .lookup_validator import LookupValidator
 from .indicator_validator import IndicatorValidator
 from .vmc_validator import VmcValidator
 from .cache import Cache
+from .bimi import BimiRecord
 
-class Validator():
+class Validator:
     """
     A class used to validate BIMI of a domain
 
@@ -30,50 +32,53 @@ class Validator():
     """
 
     def __init__(self, domain: str,
-                       lookupOpts: LookupOptions=LookupOptions(),
-                       indicatorOpts: IndicatorOptions=IndicatorOptions(),
-                       vmcOpts: VmcOptions=VmcOptions(),
-                       httpOpts: HttpOptions=HttpOptions(),
-                       cache: Cache=None) -> None:
-        self.domain = domain
-        self.lookupOpts = lookupOpts
-        self.indicatorOpts = indicatorOpts
-        self.vmcOpts = vmcOpts
-        self.httpOpts = httpOpts
+                       lookupOpts: Optional[LookupOptions] = None,
+                       indicatorOpts: Optional[IndicatorOptions] = None,
+                       vmcOpts: Optional[VmcOptions] = None,
+                       httpOpts: Optional[HttpOptions] = None,
+                       cache: Optional[Cache] = None) -> None:
+        """
+        Initialize the BIMI validator.
+
+        Args:
+            domain: Target domain to validate BIMI for
+            lookupOpts: DNS lookup configuration options
+            indicatorOpts: SVG indicator validation options
+            vmcOpts: VMC certificate validation options
+            httpOpts: HTTP request configuration options
+            cache: Optional cache instance for performance optimization
+        """
+        if not domain or not isinstance(domain, str):
+            raise ValueError("Domain must be a non-empty string")
+
+        self.domain = domain.strip().lower()
+        self.lookupOpts = lookupOpts or LookupOptions()
+        self.indicatorOpts = indicatorOpts or IndicatorOptions()
+        self.vmcOpts = vmcOpts or VmcOptions()
+        self.httpOpts = httpOpts or HttpOptions()
         self.cache = cache
 
-    def validate(self, validateIndicator: bool=True, validateVmc: bool=True):
+    def validate(self, validateIndicator: bool = True, validateVmc: bool = True) -> BimiRecord:
         """
-        Validate BIMI
+        Validate BIMI record, indicator, and VMC certificate for the domain.
 
-        Parameter
-        ---------
-        validateIndicator: bool=True
-            Ensure the BIMI indicator is validated
-        validateVmc: bool=True
-            Ensure the VMC is validated
+        This method performs a complete BIMI validation workflow:
+        1. DNS record lookup and parsing
+        2. SVG indicator validation (if requested)
+        3. VMC certificate validation (if requested)
 
-        Raises
-        ------
-        BimiNoPolicy
+        Args:
+            validateIndicator: Whether to validate the SVG indicator
+            validateVmc: Whether to validate the VMC certificate
 
-        BimiDeclined
+        Returns:
+            BimiRecord: Validated BIMI record with all relevant information
 
-        BimiFail
-
-        BimiFailInvalidURI
-
-        BimiFailInvalidFormat
-
-        BimiFailInvalidSVG
-
-        BimiFailInvalidVMC
-
-        BimiTempfail
-
-        BimiTemfailCannotAccess
-
-        BimiTemfailJingError
+        Raises:
+            BimiNoPolicy: No BIMI policy found for domain
+            BimiDeclined: BIMI explicitly declined by domain
+            BimiFail: Validation failure (various subtypes)
+            BimiTempfail: Temporary failure (network, etc.)
         """
 
         lv = LookupValidator(domain=self.domain, opts=self.lookupOpts)

@@ -3,7 +3,9 @@ from unittest.mock import Mock, patch
 
 from pybimi.validator import Validator
 from pybimi.bimi import BimiRecord
-from pybimi.exception import *
+from pybimi.exception import (
+    BimiNoPolicy, BimiFailInvalidSVG, BimiFailInvalidVMC
+)
 from pybimi.options import LookupOptions, IndicatorOptions, VmcOptions, HttpOptions
 from pybimi.cache import Cache
 
@@ -208,7 +210,7 @@ class TestValidator(unittest.TestCase):
         mock_indicator_instance.validate.return_value = None
         mock_indicator.return_value = mock_indicator_instance
 
-        result = validator.validate(validateVmc=False)
+        validator.validate(validateVmc=False)
 
         # Verify cache was passed to indicator validator
         mock_indicator.assert_called_once()

@@ -4,8 +4,12 @@ from datetime import datetime
 import struct
 
 from pybimi.vmc_validator import VmcValidator, Vmc
-from pybimi.exception import *
-from pybimi.options import VmcOptions, LookupOptions, IndicatorOptions, HttpOptions
+from pybimi.exception import (
+    BimiFail, BimiFailInvalidURI, BimiTemfailCannotAccess, BimiFailInvalidVMCNotPEM,
+    BimiFailInvalidVMCNoLeafFound, BimiFailInvalidVMCMultiLeafs, BimiFailInvalidVMCUnmatchedDomain,
+    BimiFailInvalidVMCSCTFutureTimestamp
+)
+from pybimi.options import VmcOptions, HttpOptions
 
 
 class TestVmcValidator(unittest.TestCase):
@@ -186,8 +190,6 @@ class TestVmcValidator(unittest.TestCase):
         mock_get_fld.return_value = "example.com"
 
         # This would typically be part of a larger test, but demonstrates the concept
-        validator = VmcValidator("https://subdomain.example.com/vmc.pem", domain="subdomain.example.com")
-
         # The actual validation would use get_fld for fallback
         self.assertEqual(mock_get_fld.call_count, 0)  # Not called yet
 
