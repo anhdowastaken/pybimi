@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import Mock, patch, mock_open
 import tempfile
 import os
+import xml.etree.ElementTree as ET
 
 from pybimi.indicator_validator import IndicatorValidator, Indicator
 from pybimi.exception import *
@@ -33,7 +34,7 @@ class TestIndicatorValidator(unittest.TestCase):
     @patch('os.fdopen')
     @patch('os.remove')
     def test_validate_success(self, mock_remove, mock_fdopen, mock_mkstemp, mock_get_data, mock_subprocess):
-        """Test successful indicator validation"""
+        """Test successful indicator validation with SVG Tiny validation disabled"""
         mock_svg_data = b'<svg version="1.1" baseProfile="tiny"><title>Test</title></svg>'
         mock_get_data.return_value = mock_svg_data
 
@@ -51,11 +52,14 @@ class TestIndicatorValidator(unittest.TestCase):
         mock_result.returncode = 0
         mock_subprocess.return_value = mock_result
 
+        # Disable SVG Tiny validation for this test
+        validator = IndicatorValidator(self.uri, validateSvgTinyProfile=False)
+
         # Mock SVG extraction
         with patch('pybimi.indicator_validator.IndicatorValidator._extractSVG') as mock_extract:
             mock_extract.return_value = Indicator("Test", 100, "1.1", "tiny")
 
-            result = self.validator.validate()
+            result = validator.validate()
 
             self.assertIsInstance(result, Indicator)
             mock_get_data.assert_called_once()
@@ -121,9 +125,12 @@ class TestIndicatorValidator(unittest.TestCase):
         mock_result.returncode = 0
         mock_subprocess.return_value = mock_result
 
+        # Disable SVG Tiny validation for this test
+        validator = IndicatorValidator(self.uri, validateSvgTinyProfile=False)
+
         with patch('pybimi.indicator_validator.IndicatorValidator._extractSVG') as mock_extract:
             mock_extract.return_value = Indicator("Test", 100, "1.1", "tiny")
-            result = self.validator.validate()
+            result = validator.validate()
             self.assertIsInstance(result, Indicator)
 
     @patch('subprocess.run')
@@ -234,6 +241,249 @@ class TestIndicatorValidator(unittest.TestCase):
 
             with self.assertRaises(BimiFailInvalidSVG):
                 validator.validate()
+
+    # New SVG Tiny P/S Profile Validation Tests
+    def test_indicator_with_svg_tiny_attributes(self):
+        """Test Indicator class with SVG Tiny P/S attributes"""
+        errors = ["Test error"]
+        indicator = Indicator("Test", 100, "1.2", "tiny-ps", 3, True, errors)
+
+        self.assertEqual(indicator.colorCount, 3)
+        self.assertTrue(indicator.svgTinyCompliant)
+        self.assertEqual(indicator.validationErrors, errors)
+
+    def test_svg_tiny_validation_disabled(self):
+        """Test validator with SVG Tiny profile validation disabled"""
+        validator = IndicatorValidator(self.uri, validateSvgTinyProfile=False)
+        self.assertFalse(validator.validateSvgTinyProfile)
+
+    @patch('subprocess.run')
+    @patch('pybimi.indicator_validator.getData')
+    @patch('tempfile.mkstemp')
+    @patch('os.fdopen')
+    @patch('os.remove')
+    def test_svg_tiny_validation_success(self, mock_remove, mock_fdopen, mock_mkstemp, mock_get_data, mock_subprocess):
+        """Test successful SVG Tiny P/S validation"""
+        # Create valid SVG Tiny P/S content
+        svg_content = b'''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny-ps">
+    <title>Valid Logo</title>
+    <rect fill="#ff0000" width="100" height="100"/>
+    <circle fill="#00ff00" cx="50" cy="50" r="20"/>
+</svg>'''
+
+        mock_get_data.return_value = svg_content
+        mock_mkstemp.return_value = (3, '/tmp/test.svg')
+        mock_fdopen.return_value.__enter__.return_value = Mock()
+
+        # Mock subprocess success
+        mock_result = Mock()
+        mock_result.returncode = 0
+        mock_subprocess.return_value = mock_result
+
+        validator = IndicatorValidator(self.uri, validateSvgTinyProfile=True)
+
+        # Mock the file operations for validation
+        with patch('pybimi.indicator_validator.IndicatorValidator._extractSVG') as mock_extract, \
+             patch('pybimi.indicator_validator.IndicatorValidator._validateSvgTinyProfile') as mock_validate:
+
+            mock_indicator = Indicator("Valid Logo", 1000, "1.2", "tiny-ps", 2, True, [])
+            mock_extract.return_value = mock_indicator
+
+            result = validator.validate()
+
+            mock_validate.assert_called_once()
+            self.assertIsInstance(result, Indicator)
+
+    def test_count_colors_mock_implementation(self):
+        """Test color counting with patched implementation"""
+        validator = IndicatorValidator(self.uri)
+
+        # Test the normalize color functionality
+        self.assertEqual(validator._normalizeColor('#f0c'), '#ff00cc')
+        self.assertEqual(validator._normalizeColor('#ff0000'), '#ff0000')
+
+        # Test extract colors from style
+        colors = validator._extractColorsFromStyle('fill: #ff0000; stroke: #00ff00')
+        self.assertEqual(len(colors), 2)
+
+    def test_normalize_color_hex(self):
+        """Test color normalization for hex colors"""
+        validator = IndicatorValidator(self.uri)
+
+        # Test 3-digit hex
+        self.assertEqual(validator._normalizeColor('#f0c'), '#ff00cc')
+
+        # Test 6-digit hex
+        self.assertEqual(validator._normalizeColor('#FF00CC'), '#ff00cc')
+
+    def test_normalize_color_rgb(self):
+        """Test color normalization for RGB colors"""
+        validator = IndicatorValidator(self.uri)
+
+        rgb_color = 'rgb(255, 0, 128)'
+        self.assertEqual(validator._normalizeColor(rgb_color), 'rgb(255, 0, 128)')
+
+    def test_extract_colors_from_style(self):
+        """Test color extraction from CSS style attribute"""
+        validator = IndicatorValidator(self.uri)
+
+        style = 'fill: #ff0000; stroke: #00ff00; opacity: 0.5'
+        colors = validator._extractColorsFromStyle(style)
+
+        self.assertEqual(len(colors), 2)
+        self.assertIn('#ff0000', colors)
+        self.assertIn('#00ff00', colors)
+
+    @patch('xml.etree.ElementTree.parse')
+    def test_check_prohibited_elements_found(self, mock_parse):
+        """Test detection of prohibited elements"""
+        mock_root = Mock()
+        mock_tree = Mock()
+        mock_tree.getroot.return_value = mock_root
+        mock_parse.return_value = mock_tree
+
+        # Mock elements including prohibited ones
+        elements = [
+            Mock(),
+            Mock(),
+            Mock()
+        ]
+        elements[0].tag = 'rect'
+        elements[1].tag = 'image'  # Prohibited
+        elements[2].tag = 'script'  # Prohibited
+
+        mock_root.iter.return_value = elements
+
+        validator = IndicatorValidator(self.uri)
+        prohibited = validator._checkProhibitedElements('/tmp/test.svg')
+
+        self.assertEqual(len(prohibited), 2)
+        self.assertIn('image', prohibited)
+        self.assertIn('script', prohibited)
+
+    @patch('xml.etree.ElementTree.parse')
+    def test_check_prohibited_elements_none_found(self, mock_parse):
+        """Test when no prohibited elements are found"""
+        mock_root = Mock()
+        mock_tree = Mock()
+        mock_tree.getroot.return_value = mock_root
+        mock_parse.return_value = mock_tree
+
+        # Mock elements with only allowed ones
+        elements = [Mock(), Mock()]
+        elements[0].tag = 'rect'
+        elements[1].tag = 'circle'
+
+        mock_root.iter.return_value = elements
+
+        validator = IndicatorValidator(self.uri)
+        prohibited = validator._checkProhibitedElements('/tmp/test.svg')
+
+        self.assertEqual(len(prohibited), 0)
+
+    def test_validate_svg_tiny_profile_file_size_error(self):
+        """Test SVG Tiny validation fails on oversized file"""
+        validator = IndicatorValidator(self.uri)
+
+        # Create indicator with oversized file
+        indicator = Indicator("Test", 40000, "1.2", "tiny-ps", 2, False, [])
+
+        with self.assertRaises(BimiFailInvalidSVG) as context:
+            validator._validateSvgTinyProfile('/tmp/test.svg', indicator)
+
+        self.assertIn("File size", str(context.exception))
+
+    def test_validate_svg_tiny_profile_version_error(self):
+        """Test SVG Tiny validation fails on wrong version"""
+        validator = IndicatorValidator(self.uri)
+
+        # Create indicator with wrong version
+        indicator = Indicator("Test", 1000, "1.1", "tiny-ps", 2, False, [])
+
+        with self.assertRaises(BimiFailInvalidSVG) as context:
+            validator._validateSvgTinyProfile('/tmp/test.svg', indicator)
+
+        self.assertIn("Version must be '1.2'", str(context.exception))
+
+    def test_validate_svg_tiny_profile_base_profile_error(self):
+        """Test SVG Tiny validation fails on wrong baseProfile"""
+        validator = IndicatorValidator(self.uri)
+
+        # Create indicator with wrong baseProfile
+        indicator = Indicator("Test", 1000, "1.2", "tiny", 2, False, [])
+
+        with self.assertRaises(BimiFailInvalidSVG) as context:
+            validator._validateSvgTinyProfile('/tmp/test.svg', indicator)
+
+        self.assertIn("baseProfile must be 'tiny-ps'", str(context.exception))
+
+    def test_validate_svg_tiny_profile_empty_title_error(self):
+        """Test SVG Tiny validation fails on empty title"""
+        validator = IndicatorValidator(self.uri)
+
+        # Create indicator with empty title
+        indicator = Indicator("", 1000, "1.2", "tiny-ps", 2, False, [])
+
+        with self.assertRaises(BimiFailInvalidSVG) as context:
+            validator._validateSvgTinyProfile('/tmp/test.svg', indicator)
+
+        self.assertIn("Title element is required", str(context.exception))
+
+    def test_validate_svg_tiny_profile_long_title_error(self):
+        """Test SVG Tiny validation fails on overly long title"""
+        validator = IndicatorValidator(self.uri)
+
+        # Create indicator with long title
+        long_title = "A" * 100  # Exceeds 64 character limit
+        indicator = Indicator(long_title, 1000, "1.2", "tiny-ps", 2, False, [])
+
+        with self.assertRaises(BimiFailInvalidSVG) as context:
+            validator._validateSvgTinyProfile('/tmp/test.svg', indicator)
+
+        self.assertIn("Title length", str(context.exception))
+
+    def test_validate_svg_tiny_profile_insufficient_colors_error(self):
+        """Test SVG Tiny validation fails on insufficient colors"""
+        validator = IndicatorValidator(self.uri)
+
+        # Create indicator with insufficient colors
+        indicator = Indicator("Test", 1000, "1.2", "tiny-ps", 1, False, [])
+
+        with self.assertRaises(BimiFailInvalidSVG) as context:
+            validator._validateSvgTinyProfile('/tmp/test.svg', indicator)
+
+        self.assertIn("must include at least 2 colors", str(context.exception))
+
+    @patch('pybimi.indicator_validator.IndicatorValidator._checkProhibitedElements')
+    def test_validate_svg_tiny_profile_prohibited_elements_error(self, mock_check):
+        """Test SVG Tiny validation fails on prohibited elements"""
+        validator = IndicatorValidator(self.uri)
+        mock_check.return_value = ['image', 'script']
+
+        # Create otherwise valid indicator
+        indicator = Indicator("Test", 1000, "1.2", "tiny-ps", 2, False, [])
+
+        with self.assertRaises(BimiFailInvalidSVG) as context:
+            validator._validateSvgTinyProfile('/tmp/test.svg', indicator)
+
+        self.assertIn("Prohibited elements found", str(context.exception))
+
+    @patch('pybimi.indicator_validator.IndicatorValidator._checkProhibitedElements')
+    def test_validate_svg_tiny_profile_success(self, mock_check):
+        """Test successful SVG Tiny P/S validation"""
+        validator = IndicatorValidator(self.uri)
+        mock_check.return_value = []  # No prohibited elements
+
+        # Create valid indicator
+        indicator = Indicator("Valid Test Logo", 1000, "1.2", "tiny-ps", 3, False, [])
+
+        # Should not raise an exception
+        validator._validateSvgTinyProfile('/tmp/test.svg', indicator)
+
+        # Check that indicator was updated
+        self.assertTrue(indicator.svgTinyCompliant)
+        self.assertEqual(len(indicator.validationErrors), 0)
 
 
 if __name__ == '__main__':

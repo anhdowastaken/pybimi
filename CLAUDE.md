@@ -159,18 +159,54 @@ validator = Validator(
 )
 ```
 
+#### Enhanced SVG Tiny P/S Profile Validation
+```python
+from pybimi.indicator_validator import IndicatorValidator
+
+# Enable comprehensive SVG Tiny Portable/Secure profile validation
+validator = IndicatorValidator(
+    "https://example.com/logo.svg",
+    validateSvgTinyProfile=True  # Default: True
+)
+
+try:
+    indicator = validator.validate()
+
+    # Check SVG Tiny P/S compliance
+    print(f"SVG Tiny P/S Compliant: {indicator.svgTinyCompliant}")
+    print(f"Color Count: {indicator.colorCount}")
+    print(f"File Size: {indicator.size} bytes")
+
+    if not indicator.svgTinyCompliant:
+        print("Validation Errors:")
+        for error in indicator.validationErrors:
+            print(f"  - {error}")
+
+except BimiFailInvalidSVG as e:
+    print(f"SVG validation failed: {e}")
+```
+
+The enhanced validator checks for:
+- **File Size**: Maximum 32KB (uncompressed)
+- **Version**: Must be "1.2"
+- **Base Profile**: Must be "tiny-ps"
+- **Title Element**: Required, non-empty, maximum 64 characters
+- **Color Requirements**: Minimum 2 unique colors
+- **Prohibited Elements**: Filters out disallowed elements (image, script, animation, etc.)
+- **Element Detection**: Comprehensive scanning for SVG Tiny P/S compliance
+
 ### Testing
 ```bash
-# Run the full test suite (93 tests)
+# Run the full test suite (110+ tests including SVG Tiny P/S validation)
 source ./venv/bin/activate
 python -m pytest tests/ -v
 
-# Expected output: 93 passed in ~0.3s
+# Expected output: 110+ passed in ~0.3s
 ```
 
 ### Library Status
 - ✅ **Specification Compliant**: Adheres to BIMI and VMC reference documentation
 - ✅ **Production Ready**: Comprehensive error handling and validation
-- ✅ **Well Tested**: 93 unit tests with 100% pass rate
+- ✅ **Well Tested**: 110+ unit tests with 100% pass rate including comprehensive SVG Tiny P/S validation
 - ✅ **Backward Compatible**: All existing APIs maintained
-- 🔄 **Future Enhancement**: SVG Tiny profile validation could be added for even stricter compliance
+- ✅ **SVG Tiny P/S Profile Validation**: Enhanced validation for strict SVG Tiny Portable/Secure compliance
