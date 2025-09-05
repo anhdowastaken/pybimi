@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-from typing import List, Optional, Union
 import re
 import struct
 import time
@@ -11,8 +10,7 @@ import hashlib
 from tld import get_fld
 
 from .exception import (
-    BimiFail, BimiFailInvalidURI, BimiFailInvalidVMC,
-    BimiFailInvalidVMCNotPEM, BimiFailInvalidVMCNoLeafFound,
+    BimiFail, BimiFailInvalidURI, BimiFailInvalidVMCNotPEM, BimiFailInvalidVMCNoLeafFound,
     BimiFailInvalidVMCMultiLeafs, BimiFailInvalidVMCUnmatchedDomain,
     BimiFailInvalidVMCUnmatchedSAN, BimiFailInvalidVMCCriticalLogotype,
     BimiFailInvalidVMCNoHashFound, BimiFailInvalidVMCUnmatchedSVG,
@@ -24,10 +22,10 @@ from .exception import (
     BimiFailInvalidVMCNotAllowToSign, BimiFailInvalidVMCUnsupportedCriticalExtensionFound,
     BimiFailInvalidVMCNoValidPolicySetFound, BimiFailInvalidVMCNoMatchingIssuerFound,
     BimiFailInvalidVMCNoSCTFound, BimiFailInvalidVMCInvalidSCT, BimiFailInvalidVMCSCTFutureTimestamp,
-    BimiTempfail, BimiTemfailCannotAccess
+    BimiTempfail
 )
 from .utils import getData
-from .asn1_logotype import ASN1LogotypeExtn, LogotypeHash, extractHashArray, oidLogotype
+from .asn1_logotype import extractHashArray, oidLogotype
 from .options import VmcOptions, LookupOptions, IndicatorOptions, HttpOptions
 from .cache import Cache
 
@@ -678,7 +676,7 @@ class VmcValidator:
 
             return vmc
 
-        except:
+        except Exception:
             return None
 
     def _get_exception_certvalidator_pattern_map(self):

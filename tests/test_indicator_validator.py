@@ -1,11 +1,10 @@
 import unittest
-from unittest.mock import Mock, patch, mock_open
-import tempfile
-import os
-import xml.etree.ElementTree as ET
+from unittest.mock import Mock, patch
 
 from pybimi.indicator_validator import IndicatorValidator, Indicator
-from pybimi.exception import *
+from pybimi.exception import (
+    BimiFailInvalidURI, BimiTemfailCannotAccess, BimiTemfailJingError, BimiFailInvalidSVG
+)
 from pybimi.options import IndicatorOptions, HttpOptions
 
 

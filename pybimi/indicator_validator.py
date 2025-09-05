@@ -6,11 +6,13 @@ import re
 from xml.dom import minidom
 import xml.etree.ElementTree as ET
 
-from .bimi import *
-from .exception import *
-from .utils import *
-from .options import *
-from .cache import *
+import hashlib
+from .exception import (
+    BimiFailInvalidURI, BimiTempfail, BimiFail, BimiTemfailJingError, BimiFailInvalidSVG
+)
+from .utils import getData
+from .options import IndicatorOptions, HttpOptions
+from .cache import Cache
 
 class Indicator:
     """
@@ -312,7 +314,7 @@ class IndicatorValidator:
 
             return i
 
-        except:
+        except Exception:
             return None
 
     def _validateSvgTinyProfile(self, path: str, indicator: Indicator) -> None:

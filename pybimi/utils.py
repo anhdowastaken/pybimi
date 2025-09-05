@@ -1,5 +1,5 @@
 import os
-from typing import Optional, Tuple
+from typing import Optional
 import requests
 import hashlib
 from urllib.parse import urlparse
