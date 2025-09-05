@@ -101,3 +101,12 @@ class BimiFailInvalidVMCNoValidPolicySetFound(BimiFailInvalidVMC):
 
 class BimiFailInvalidVMCNoMatchingIssuerFound(BimiFailInvalidVMC):
     """Raised when no matching issuer found"""
+
+class BimiFailInvalidVMCNoSCTFound(BimiFailInvalidVMC):
+    """Raised when no SCT (Signed Certificate Timestamp) found in VMC"""
+
+class BimiFailInvalidVMCInvalidSCT(BimiFailInvalidVMC):
+    """Raised when SCT validation fails"""
+
+class BimiFailInvalidVMCSCTFutureTimestamp(BimiFailInvalidVMC):
+    """Raised when SCT timestamp is in the future"""
