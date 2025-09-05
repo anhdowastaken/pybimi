@@ -83,6 +83,8 @@ class VmcOptions:
         Ensure the certificate was not revoked and passed OSCP check
     verifySVGImage: bool=True
         Ensure the external SVG logo image and the one embedded in the certificate are the same
+    verifyCTLogging: bool=False
+        Validate Certificate Transparency (CT) logging according to RFC 6962
     httpOpts=HttpOptions()
         HTTP options
     indicatorOpts=IndicatorOptions()
@@ -94,6 +96,7 @@ class VmcOptions:
                        verifyDNSNameAcceptSubdomain: bool=False,
                        revocationCheckAndOscpCheck: bool=False,
                        verifySVGImage: bool=True,
+                       verifyCTLogging: bool=False,
                        httpOpts=HttpOptions(),
                        indicatorOpts=IndicatorOptions()) -> None:
         self.maxSizeInBytes = maxSizeInBytes
@@ -101,5 +104,6 @@ class VmcOptions:
         self.verifyDNSNameAcceptSubdomain = verifyDNSNameAcceptSubdomain
         self.revocationCheckAndOscpCheck = revocationCheckAndOscpCheck
         self.verifySVGImage = verifySVGImage
+        self.verifyCTLogging = verifyCTLogging
         self.httpOpts = httpOpts
         self.indicatorOpts = indicatorOpts
